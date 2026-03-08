@@ -67,8 +67,8 @@ htmlcov/
 models/
 checkpoints/
 
-# Data
-data/
+# Data (root level only - for dataset files)
+/data/
 *.csv
 *.json
 !package.json
