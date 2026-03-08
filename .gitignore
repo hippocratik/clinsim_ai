@@ -37,6 +37,9 @@ env/
 .DS_Store
 Thumbs.db
 
+# Git worktrees
+.worktrees/
+
 # Environment variables
 .env
 .env.local
@@ -64,8 +67,8 @@ htmlcov/
 models/
 checkpoints/
 
-# Data
-data/
+# Data (root level only - for dataset files)
+/data/
 *.csv
 *.json
 !package.json
