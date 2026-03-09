@@ -66,10 +66,14 @@ def build_case_from_parsed(
             # Determine if high or low based on common patterns
             flag = "high"  # Simplified - would need reference ranges
 
+        unit = lab.get("valueuom", lab.get("unit", "")) or ""
+        # pandas reads missing values as float NaN - coerce to empty string
+        if not isinstance(unit, str):
+            unit = ""
         lab_results.append(LabResult(
             lab_name=lab.get("label", lab.get("lab_name", "Unknown")),
             value=str(lab.get("value", "")),
-            unit=lab.get("valueuom", lab.get("unit", "")),
+            unit=unit,
             flag=flag
         ))
 
