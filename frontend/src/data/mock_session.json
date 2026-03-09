@@ -1,0 +1,101 @@
+{
+  "session_id": "mock_session_001",
+  "case_id": "case_001",
+  "trainee_id": "demo_trainee",
+  "started_at": "2026-03-07T10:00:00Z",
+  "status": "active",
+  "revealed_info": [],
+  "ordered_labs": [],
+  "actions_taken": [],
+  "current_score": 0,
+  "case": {
+    "case_id": "case_001",
+    "subject_id": 10001,
+    "hadm_id": 20001,
+    "demographics": {
+      "age": 58,
+      "gender": "M",
+      "admission_type": "EMERGENCY"
+    },
+    "presenting_complaint": "Crushing chest pain for 2 hours",
+    "hpi": "The patient is a 58-year-old man with a history of hypertension and type 2 diabetes who presents with sudden onset, central chest pain that began 2 hours ago while walking up stairs. The pain is described as heavy and pressure-like, radiating to the left arm, and associated with shortness of breath and nausea.",
+    "past_medical_history": [
+      "Hypertension",
+      "Type 2 diabetes mellitus",
+      "Hyperlipidemia"
+    ],
+    "medications": [
+      "Metformin",
+      "Lisinopril",
+      "Atorvastatin"
+    ],
+    "allergies": [
+      "No known drug allergies"
+    ],
+    "physical_exam": {
+      "vitals": {
+        "heart_rate": 104,
+        "blood_pressure": "152/94",
+        "respiratory_rate": 22,
+        "temperature": 37.1,
+        "spo2": 93
+      },
+      "findings": "Anxious, diaphoretic man clutching his chest. Jugular venous pressure not elevated. Lungs with mild bibasilar crackles. Cardiac exam with regular tachycardic rhythm, no loud murmurs. No lower extremity edema."
+    },
+    "available_labs": [
+      {
+        "lab_name": "Troponin I",
+        "value": "1.20",
+        "unit": "ng/mL",
+        "flag": "critical"
+      },
+      {
+        "lab_name": "BNP",
+        "value": "480",
+        "unit": "pg/mL",
+        "flag": "high"
+      },
+      {
+        "lab_name": "Hemoglobin",
+        "value": "13.4",
+        "unit": "g/dL",
+        "flag": "normal"
+      }
+    ],
+    "diagnoses": [
+      {
+        "icd9_code": "410.11",
+        "description": "Acute myocardial infarction, anterolateral wall",
+        "is_primary": true
+      },
+      {
+        "icd9_code": "401.9",
+        "description": "Unspecified essential hypertension",
+        "is_primary": false
+      },
+      {
+        "icd9_code": "250.00",
+        "description": "Diabetes mellitus without mention of complication",
+        "is_primary": false
+      }
+    ],
+    "discharge_summary": "Patient admitted with acute ST-elevation myocardial infarction. Received aspirin, nitroglycerin, and was taken emergently for PCI with stent placement to the LAD. Hospital course was uncomplicated and the patient was discharged home on dual antiplatelet therapy, beta-blocker, ACE inhibitor, and high-intensity statin.",
+    "difficulty": "medium",
+    "specialties": [
+      "cardiology"
+    ],
+    "source_case_id": null,
+    "is_generated": false
+  },
+  "sample_interactions": [
+    {
+      "trainee_input": "What brought you to the hospital today?",
+      "patient_response": "I've been having this really heavy chest pain that just won't go away."
+    },
+    {
+      "trainee_input": "Can you describe the pain for me?",
+      "patient_response": "It feels like someone is sitting on my chest, and it goes down my left arm."
+    }
+  ]
+}
+

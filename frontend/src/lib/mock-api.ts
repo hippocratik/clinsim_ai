@@ -1,0 +1,216 @@
+import mockSession from "@/data/mock_session.json";
+import type {
+  Case,
+  SimulationSession,
+  ChatMessage,
+  OrderedLab,
+  DiagnoseRequest,
+  DiagnoseResponse,
+  CaseScore,
+} from "./types";
+
+type MockSessionPayload = typeof mockSession;
+
+let activeSession: MockSessionPayload | null = mockSession;
+
+const LATENCY = {
+  fast: 200,
+  medium: 600,
+  slow: 1200,
+};
+
+function delay<T>(value: T, ms: number): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
+}
+
+function toSimulationSession(data: MockSessionPayload): SimulationSession {
+  return {
+    session_id: data.session_id,
+    case_id: data.case_id,
+    trainee_id: data.trainee_id,
+    started_at: data.started_at,
+    status: data.status,
+    revealed_info: data.revealed_info,
+    ordered_labs: data.ordered_labs,
+    actions_taken: data.actions_taken,
+    current_score: data.current_score,
+  };
+}
+
+export const mockApi = {
+  async getCases(): Promise<Case[]> {
+    const data = activeSession ?? mockSession;
+    return delay([data.case as Case], LATENCY.fast);
+  },
+
+  async createSession(caseId: string): Promise<{ session_id: string }> {
+    const base = activeSession ?? mockSession;
+    const sessionId = `mock_${caseId}_1`;
+    activeSession = {
+      ...base,
+      session_id: sessionId,
+      case_id: caseId,
+      status: "active",
+      ordered_labs: [],
+      actions_taken: [],
+      revealed_info: [],
+      current_score: 0,
+    };
+    return delay({ session_id: sessionId }, LATENCY.fast);
+  },
+
+  async getSession(sessionId: string): Promise<{
+    session: SimulationSession;
+    case: Case;
+    messages: ChatMessage[];
+    orderedLabs: OrderedLab[];
+    resourcesUsed: number;
+    maxResources: number;
+  }> {
+    const base = activeSession ?? mockSession;
+    // In the purely mock frontend we treat the URL sessionId as authoritative.
+    const data: MockSessionPayload = {
+      ...base,
+      session_id: sessionId,
+    };
+    activeSession = data;
+    const messages: ChatMessage[] = [
+      {
+        id: "intro-1",
+        role: "system",
+        content:
+          "You are starting an encounter with a simulated patient. Take a focused history, then order targeted tests.",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    return delay(
+      {
+        session: toSimulationSession(data),
+        case: data.case as Case,
+        messages,
+        orderedLabs: [],
+        resourcesUsed: 0,
+        maxResources: 100,
+      },
+      LATENCY.fast,
+    );
+  },
+
+  async sendChat(
+    sessionId: string,
+    message: string,
+  ): Promise<{ response: string }> {
+    const data = activeSession ?? mockSession;
+    // Keep behavior simple in mock mode: accept any sessionId and respond based on static case.
+    const lower = message.toLowerCase();
+    let response =
+      "I'm not entirely sure how to answer that. Maybe you could ask about my symptoms or medical history?";
+
+    if (lower.includes("brought") || lower.includes("hospital")) {
+      response =
+        "I've been having this heavy chest pain that started a couple of hours ago and it scared me.";
+    } else if (lower.includes("describe") || lower.includes("pain")) {
+      response =
+        "It feels like a pressure right in the middle of my chest, and it goes into my left arm.";
+    } else if (lower.includes("history") || lower.includes("problems")) {
+      response =
+        "I've had high blood pressure and diabetes for a few years, and my doctor says my cholesterol is high.";
+    } else if (lower.includes("medication") || lower.includes("pill")) {
+      response =
+        "I take metformin for my diabetes, lisinopril for my blood pressure, and a cholesterol pill at night.";
+    } else if (lower.includes("allerg")) {
+      response = "I don't think I'm allergic to any medications.";
+    }
+
+    return delay({ response }, LATENCY.medium);
+  },
+
+  async orderLabs(
+    sessionId: string,
+    labIds: string[],
+  ): Promise<{
+    orderedLabs: OrderedLab[];
+    resourcesUsed: number;
+  }> {
+    const data = activeSession ?? mockSession;
+    const caseData = data.case as Case;
+    const costPerLab: Record<string, number> = {
+      troponin: 2,
+      bnp: 2,
+      cbc: 2,
+      bmp: 3,
+      cmp: 4,
+      cardiac: 3,
+    };
+
+    const orderedLabs: OrderedLab[] = labIds.map((id) => {
+      const match = caseData.available_labs.find((lab) =>
+        lab.lab_name.toLowerCase().includes(id.toLowerCase()),
+      );
+      return {
+        id,
+        name: match?.lab_name ?? id,
+        cost: costPerLab[id] ?? 1,
+        result: match,
+      };
+    });
+
+    const resourcesUsed = orderedLabs.reduce((sum, lab) => sum + lab.cost, 0);
+
+    return delay(
+      {
+        orderedLabs,
+        resourcesUsed,
+      },
+      LATENCY.slow,
+    );
+  },
+
+  async submitDiagnosis(
+    sessionId: string,
+    _diagnosis: DiagnoseRequest,
+  ): Promise<DiagnoseResponse> {
+    const score: CaseScore = {
+      session_id: sessionId,
+      diagnostic_accuracy: 0.9,
+      primary_diagnosis_correct: true,
+      differential_score: 0.6,
+      efficiency_score: 0.7,
+      time_to_diagnosis_seconds: 480,
+      labs_ordered: 4,
+      optimal_labs: 3,
+    };
+
+    const optimalPath = [
+      "Clarified onset and character of chest pain",
+      "Assessed cardiovascular risk factors",
+      "Ordered ECG and cardiac enzymes",
+      "Initiated ACS treatment pathway",
+    ];
+
+    const traineePath = [
+      "Asked about chest pain and associated symptoms",
+      "Explored past medical history and medications",
+      "Ordered troponin and basic labs",
+      "Considered acute coronary syndrome as primary diagnosis",
+    ];
+
+    const learningPoints = [
+      "Early ECG is critical in suspected myocardial infarction.",
+      "Troponin elevation supports the diagnosis but can lag behind symptom onset.",
+      "Risk factor assessment helps refine pre-test probability.",
+    ];
+
+    return delay(
+      {
+        score,
+        optimalPath,
+        traineePath,
+        learningPoints,
+      },
+      LATENCY.medium,
+    );
+  },
+};
+
