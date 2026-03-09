@@ -10,7 +10,7 @@ from app.config import settings
 from app.core.rag import RAGService
 from app.core.session_manager import SessionManager
 from app.core.scoring import ScoringEngine
-from app.core.llm import LLMService
+from app.core.llm import LLMProvider, LLMService
 from app.api.routes import cases, sessions, diagnoses, health
 
 
@@ -55,7 +55,13 @@ async def lifespan(app: FastAPI):
     app.state.rag_service = rag
     app.state.session_manager = SessionManager()
     app.state.scoring_engine = ScoringEngine()
-    app.state.llm_service = LLMService()
+    # app.state.llm_service = LLMService()
+
+    app.state.llm_service = LLMService(
+        provider=LLMProvider(settings.llm_provider),
+        anthropic_api_key=settings.anthropic_api_key,
+        openai_api_key=settings.openai_api_key,
+    )
 
     print("  ✓ Session manager ready")
     print("  ✓ Scoring engine ready")
