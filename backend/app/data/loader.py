@@ -1,6 +1,9 @@
 from dataclasses import dataclass
-from datasets import load_dataset
+from huggingface_hub import snapshot_download
 import pandas as pd
+from pathlib import Path
+
+DATASET_REPO = "bavehackathon/2026-healthcare-ai"
 
 @dataclass
 class MIMICDataset:
@@ -12,19 +15,20 @@ class MIMICDataset:
     d_labitems: pd.DataFrame
 
 def load_mimic_dataset() -> MIMICDataset:
-    """Load all tables from the HuggingFace bavehackathon/2026-healthcare-ai dataset."""
+    """Load all tables from the HuggingFace bavehackathon/2026-healthcare-ai dataset.
 
-    # Load the dataset from HuggingFace
-    ds = load_dataset("bavehackathon/2026-healthcare-ai")
+    Downloads the dataset snapshot once and caches it locally. Each CSV file
+    is loaded separately since they have different schemas.
+    """
+    # Download (or use cached) snapshot of the dataset repo
+    snapshot_path = Path(snapshot_download(repo_id=DATASET_REPO, repo_type="dataset"))
 
-    # Convert each split/table to pandas DataFrame
-    # Note: Actual table names may vary - adjust based on dataset structure
-    clinical_cases = ds["clinical_cases"].to_pandas() if "clinical_cases" in ds else pd.DataFrame()
-    diagnoses = ds["diagnoses"].to_pandas() if "diagnoses" in ds else pd.DataFrame()
-    labs = ds["labs"].to_pandas() if "labs" in ds else pd.DataFrame()
-    prescriptions = ds["prescriptions"].to_pandas() if "prescriptions" in ds else pd.DataFrame()
-    d_icd_diagnoses = ds["d_icd_diagnoses"].to_pandas() if "d_icd_diagnoses" in ds else pd.DataFrame()
-    d_labitems = ds["d_labitems"].to_pandas() if "d_labitems" in ds else pd.DataFrame()
+    clinical_cases = pd.read_csv(snapshot_path / "clinical_cases.csv.gz")
+    diagnoses = pd.read_csv(snapshot_path / "diagnoses_subset.csv.gz")
+    labs = pd.read_csv(snapshot_path / "labs_subset.csv.gz")
+    prescriptions = pd.read_csv(snapshot_path / "prescriptions_subset.csv.gz")
+    d_icd_diagnoses = pd.read_csv(snapshot_path / "diagnosis_dictionary.csv.gz")
+    d_labitems = pd.read_csv(snapshot_path / "lab_dictionary.csv.gz")
 
     return MIMICDataset(
         clinical_cases=clinical_cases,
