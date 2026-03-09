@@ -6,7 +6,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
+from app.config import get_settings
+settings = get_settings()
 from app.core.rag import RAGService
 from app.core.session_manager import SessionManager
 from app.core.scoring import ScoringEngine
