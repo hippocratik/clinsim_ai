@@ -253,14 +253,29 @@ def perform_exam(
         )
 
     case_data = case_index.get(session.case_id, {})
-    findings = case_data.get("physical_exam", {}).get("findings", "No specific findings documented.")
+    physical_exam = case_data.get("physical_exam", {})
+
+    # Check for system-specific findings first, fall back to general findings
+    system_findings = physical_exam.get("system_findings", {})
+    findings = system_findings.get(
+        body.system.lower(),
+        physical_exam.get("findings", "No specific findings documented.")
+    )
+
+    # Note if system-specific findings are unavailable
+    note = None if body.system.lower() in system_findings else (
+        f"System-specific findings for '{body.system}' not available. Returning general exam findings."
+    )
 
     exam = session_manager.record_exam(session_id, body.system, findings)
-    return {
+    response = {
         "system": exam.system,
         "findings": exam.findings,
         "performed_at": exam.performed_at.isoformat(),
     }
+    if note:
+        response["note"] = note
+    return response
 
 
 @router.post("/{session_id}/diagnose")
