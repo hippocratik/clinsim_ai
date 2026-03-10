@@ -61,7 +61,7 @@ class ScoringEngine:
         )
 
         if primary_correct:
-            bd.feedback.append("✓ Primary diagnosis is correct — full 40 points.")
+            bd.feedback.append("[CORRECT] Primary diagnosis is correct — full 40 points.")
             return self.PRIMARY_MAX
 
         # Partial credit: correct specialty / category (first 3 ICD-9 digits)
@@ -71,10 +71,10 @@ class ScoringEngine:
         )
         if partial:
             pts = int(self.PRIMARY_MAX * 0.5)
-            bd.feedback.append(f"~ Primary diagnosis in correct category — {pts} points.")
+            bd.feedback.append(f"[PARTIAL] Primary diagnosis in correct category — {pts} points.")
             return pts
 
-        bd.feedback.append("✗ Primary diagnosis incorrect — 0 points.")
+        bd.feedback.append("[INCORRECT] Primary diagnosis incorrect — 0 points.")
         return 0
 
     def _score_differentials(self, session: Session, case: Case, bd: ScoreBreakdown) -> int:
