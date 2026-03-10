@@ -24,7 +24,14 @@ async def lifespan(app: FastAPI):
     cases_path = Path(settings.cases_path)
     if cases_path.exists():
         with open(cases_path) as f:
-            case_list: list[dict] = json.load(f)
+            data = json.load(f)
+        # Handle both list and dict formats
+        if isinstance(data, list):
+            case_list = data
+        elif isinstance(data, dict):
+            case_list = list(data.values())
+        else:
+            case_list = []
         print(f"  ✓ Loaded {len(case_list)} cases from {cases_path}")
     else:
         case_list = []
