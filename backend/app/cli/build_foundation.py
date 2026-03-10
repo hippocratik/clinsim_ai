@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 from app.config import get_settings
-from app.core.llm import LLMService
+from app.core.llm import LLMService, LLMProvider
 from app.data.loader import load_mimic_dataset, get_case_by_hadm_id
 from app.data.parser import parse_discharge_summary, build_case_from_parsed
 from app.rag.chunker import chunk_case
@@ -41,7 +41,13 @@ async def build_foundation(num_cases: int = 20):
 
     # Step 3: Parse discharge summaries
     print("\n[3/5] Parsing discharge summaries with Claude...")
-    llm_service = LLMService(api_key=settings.anthropic_api_key, model=settings.llm_model)
+    # llm_service = LLMService(api_key=settings.anthropic_api_key, model=settings.llm_model)
+    llm_service = LLMService(
+        provider=LLMProvider(settings.llm_provider),
+        anthropic_api_key=settings.anthropic_api_key,
+        openai_api_key=settings.openai_api_key,
+        model=settings.llm_model or None,
+    )
 
     cases = []
     for i, hadm_id in enumerate(hadm_ids):

@@ -51,12 +51,15 @@ class TemplateExtractor:
 
         # Call LLM to extract template
         llm_response = await self.llm_service.generate(
-            prompt=case_summary,
-            system_prompt=TEMPLATE_EXTRACTION_SYSTEM_PROMPT
+            system_prompt=TEMPLATE_EXTRACTION_SYSTEM_PROMPT,
+            user_prompt=case_summary,
         )
 
         # Parse response and build template
-        template_data = json.loads(llm_response)
+        clean = llm_response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        if not clean:
+            raise ValueError("LLM returned empty response for template extraction")
+        template_data = json.loads(clean)
 
         return ClinicalTemplate(
             source_case_id=case.case_id,
