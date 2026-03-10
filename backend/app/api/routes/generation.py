@@ -83,9 +83,8 @@ async def run_generation(
             )
 
             # Validate clinical accuracy
-            is_valid = await validator.validate(variation_dict)
-
-            if is_valid:
+            validation_result = await validator.validate(variation_dict, template)
+            if validation_result.is_valid:
                 case_id = variation_dict.get("case_id", str(uuid.uuid4()))
                 generated_ids.append(case_id)
 

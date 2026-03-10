@@ -218,7 +218,7 @@ class ClinicalValidator:
         prompt = self._build_validation_prompt(case, template)
 
         response = await self.llm_service.generate(
-            prompt=prompt,
+            user_prompt=prompt,
             system_prompt=CLINICAL_VALIDATION_SYSTEM_PROMPT
         )
 
