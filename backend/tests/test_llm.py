@@ -3,7 +3,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from app.core.llm import LLMService
 
 def test_llm_service_init():
-    service = LLMService(api_key="test-key", model="claude-opus-4-5-20251101")
+    service = LLMService(anthropic_api_key="test-key", model="claude-opus-4-5-20251101")
     assert service.model == "claude-opus-4-5-20251101"
 
 @pytest.mark.asyncio
