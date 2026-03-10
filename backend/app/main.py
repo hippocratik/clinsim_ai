@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
 
     app.state.cases = case_list
     app.state.case_index = {c["case_id"]: c for c in case_list}
+    app.state.generation_jobs = {}
 
     # Load chunks
     chunks_path = Path(settings.chunks_path)

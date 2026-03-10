@@ -1,6 +1,6 @@
 import uuid
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 from typing import Optional
 from app.dependencies import get_llm_service, get_rag_service, get_case_index
 from app.core.llm import LLMService
@@ -9,8 +9,8 @@ from app.models import Case
 
 router = APIRouter(prefix="/api/generate", tags=["generation"])
 
-# In-memory job tracker
-generation_jobs: dict[str, dict] = {}
+# NOTE: generation_jobs lives in app.state (set at startup in main.py).
+# For true multi-worker support, replace with Redis or a shared store.
 
 
 # ── Request / Response schemas ────────────────────────────────────────────────
@@ -19,7 +19,7 @@ class GenerateRequest(BaseModel):
     source_case_id: str
     target_diagnosis: Optional[str] = None
     difficulty: Optional[str] = None  # "easy" | "medium" | "hard"
-    count: int = 1
+    count: int = Field(default=1, ge=1, le=10)
 
 
 class GenerateResponse(BaseModel):
@@ -42,6 +42,8 @@ async def run_generation(
     llm_service: LLMService,
     rag_service: RAGService,
     case_index: dict,
+    generation_jobs: dict,
+    app_state,
 ):
     """Background task that runs the generation pipeline."""
     try:
@@ -72,6 +74,7 @@ async def run_generation(
             # Build variation parameters if provided
             params = None
             if request.difficulty or request.target_diagnosis:
+                from app.generation.models import VariationParameters
                 params = VariationParameters(
                     symptom_severity=request.difficulty or "typical",
                 )
@@ -86,6 +89,12 @@ async def run_generation(
             validation_result = await validator.validate(variation_dict, template)
             if validation_result.is_valid:
                 case_id = variation_dict.get("case_id", str(uuid.uuid4()))
+                variation_dict["case_id"] = case_id
+
+                # Persist to in-memory case store so GET /api/cases/{id} works
+                app_state.case_index[case_id] = variation_dict
+                app_state.cases.append(variation_dict)
+
                 generated_ids.append(case_id)
 
         generation_jobs[job_id]["status"] = "completed"
@@ -102,6 +111,7 @@ async def run_generation(
 async def generate_case_variation(
     request: GenerateRequest,
     background_tasks: BackgroundTasks,
+    req: Request,
     llm_service: LLMService = Depends(get_llm_service),
     rag_service: RAGService = Depends(get_rag_service),
     case_index: dict = Depends(get_case_index),
@@ -112,21 +122,30 @@ async def generate_case_variation(
     """
     job_id = str(uuid.uuid4())
 
-    generation_jobs[job_id] = {
+    req.app.state.generation_jobs[job_id] = {
         "status": "pending",
         "generated_case_ids": [],
         "error": None,
     }
 
-    background_tasks.add_task(run_generation, job_id, request, llm_service, rag_service, case_index)
+    background_tasks.add_task(
+        run_generation,
+        job_id,
+        request,
+        llm_service,
+        rag_service,
+        case_index,
+        req.app.state.generation_jobs,
+        req.app.state,
+    )
 
     return GenerateResponse(job_id=job_id, status="pending")
 
 
 @router.get("/{job_id}", response_model=JobStatusResponse)
-async def get_generation_status(job_id: str):
+async def get_generation_status(job_id: str, req: Request):
     """Poll the status of a generation job."""
-    job = generation_jobs.get(job_id)
+    job = req.app.state.generation_jobs.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
 
