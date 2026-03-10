@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
 
     # LLM Provider — "anthropic" or "openai"
-    llm_provider: str = "openai"
+    llm_provider: str = "anthropic"
 
     # Paths
     cases_path: str = "data/cases.json"
