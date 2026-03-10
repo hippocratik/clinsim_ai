@@ -82,19 +82,26 @@ class VariationGenerator:
         """
         # 1. Retrieve similar real cases for grounding
         rag_query = f"{template.primary_diagnosis} {template.diagnosis_category}"
-        similar_cases = await self.rag.search(rag_query)
+        # similar_cases = await self.rag.search(rag_query)
+        similar_cases = self.rag.retrieve_for_generation(
+            diagnosis=rag_query,
+            exclude_case_id=template.source_case_id,
+        )
 
         # 2. Build prompt with template and reference cases
         prompt = self._build_generation_prompt(template, similar_cases, params)
 
         # 3. Generate variation with LLM
         llm_response = await self.llm.generate(
-            prompt=prompt,
-            system_prompt=VARIATION_GENERATION_SYSTEM_PROMPT
+            system_prompt=VARIATION_GENERATION_SYSTEM_PROMPT,
+            user_prompt=prompt,
         )
 
         # 4. Parse and return case dict
-        return json.loads(llm_response)
+        clean = llm_response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        if not clean:
+            raise ValueError("LLM returned empty response for variation generation")
+        return json.loads(clean)
 
     async def generate_batch(
         self,
@@ -150,7 +157,7 @@ class VariationGenerator:
         ])
 
         for ref in similar_cases[:3]:
-            parts.append(f"  - {ref.get('content', 'No content')}")
+            parts.append(f"  - {ref.content}")
 
         # Add variation parameters if provided
         if params:
