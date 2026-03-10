@@ -20,7 +20,7 @@ interface PatientChatProps {
 
 export function PatientChat({ sessionId, initialMessages }: PatientChatProps) {
   const [input, setInput] = useState("");
-  const { messages, isSending, sendMessage } = usePatientChat({
+  const { messages, isSending, streamingMessageId, sendMessage } = usePatientChat({
     sessionId,
     initialMessages,
   });
@@ -62,6 +62,12 @@ export function PatientChat({ sessionId, initialMessages }: PatientChatProps) {
         {messages.map((m) => (
           <MessageBubble key={m.id} message={m} />
         ))}
+        {streamingMessageId && (
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <span>Patient is responding…</span>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3">

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import { SessionClient } from "./SessionClient";
 
@@ -18,8 +18,15 @@ export default async function SessionPage(props: {
   params: Promise<SessionPageParams>;
 }) {
   const { sessionId } = await props.params;
+
+  // Try to ensure there is a usable session on the server; 404 if not.
   await ensureSession(sessionId);
+  const result = await api.getSession(sessionId).catch(() => null);
+  if (!result) {
+    notFound();
+  }
 
   // This component is a server stub that hands off to a client component for hooks/state.
   return <SessionClient sessionId={sessionId} />;
 }
+

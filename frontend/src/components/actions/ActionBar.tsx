@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import type { DiagnoseRequest } from "@/lib/types";
+import type { DiagnoseRequest, Diagnosis } from "@/lib/types";
 import { DiagnosisModal } from "./DiagnosisModal";
 
 interface ActionBarProps {
   onOrderLabs: () => void;
   onSubmitDiagnosis: (payload: DiagnoseRequest) => Promise<void>;
   onAskHistoryHint?: () => void;
+  caseDiagnoses: Diagnosis[];
 }
 
 export function ActionBar({
   onOrderLabs,
   onSubmitDiagnosis,
   onAskHistoryHint,
+  caseDiagnoses,
 }: ActionBarProps) {
   const [showDiagnosis, setShowDiagnosis] = useState(false);
 
@@ -54,6 +56,7 @@ export function ActionBar({
           await onSubmitDiagnosis(payload);
           setShowDiagnosis(false);
         }}
+        caseDiagnoses={caseDiagnoses}
       />
     </>
   );

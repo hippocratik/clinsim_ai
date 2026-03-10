@@ -17,7 +17,7 @@ export function PathComparison({
         </h3>
         <ol className="mt-2 space-y-1.5 text-xs text-slate-700">
           {traineePath.map((step, idx) => (
-            <li key={step} className="flex gap-2">
+            <li key={`trainee-${idx}`} className="flex gap-2">
               <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
                 {idx + 1}
               </span>
@@ -33,7 +33,7 @@ export function PathComparison({
         </h3>
         <ol className="mt-2 space-y-1.5 text-xs text-slate-700">
           {optimalPath.map((step, idx) => (
-            <li key={step} className="flex gap-2">
+            <li key={`optimal-${idx}`} className="flex gap-2">
               <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
                 {idx + 1}
               </span>
@@ -48,8 +48,8 @@ export function PathComparison({
           Learning points
         </h3>
         <ul className="space-y-1.5 text-xs text-slate-700">
-          {learningPoints.map((point) => (
-            <li key={point} className="flex gap-2">
+          {learningPoints.map((point, idx) => (
+            <li key={`learning-${idx}`} className="flex gap-2">
               <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
               <span>{point}</span>
             </li>

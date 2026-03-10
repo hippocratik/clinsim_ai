@@ -1,13 +1,16 @@
 import mockSession from "@/data/mock_session.json";
 import type {
+  ApiClient,
   Case,
   SimulationSession,
+  SessionStatus,
   ChatMessage,
   OrderedLab,
   DiagnoseRequest,
   DiagnoseResponse,
   CaseScore,
 } from "./types";
+import { LAB_COSTS } from "./constants";
 
 type MockSessionPayload = typeof mockSession;
 
@@ -24,12 +27,20 @@ function delay<T>(value: T, ms: number): Promise<T> {
 }
 
 function toSimulationSession(data: MockSessionPayload): SimulationSession {
+  const rawStatus = data.status as string;
+  const allowedStatuses: SessionStatus[] = ["active", "completed", "abandoned"];
+  const status: SessionStatus = allowedStatuses.includes(
+    rawStatus as SessionStatus,
+  )
+    ? (rawStatus as SessionStatus)
+    : "active";
+
   return {
     session_id: data.session_id,
     case_id: data.case_id,
     trainee_id: data.trainee_id,
     started_at: data.started_at,
-    status: data.status,
+    status,
     revealed_info: data.revealed_info,
     ordered_labs: data.ordered_labs,
     actions_taken: data.actions_taken,
@@ -37,10 +48,40 @@ function toSimulationSession(data: MockSessionPayload): SimulationSession {
   };
 }
 
-export const mockApi = {
+function toCase(data: MockSessionPayload): Case {
+  const raw = data.case;
+  return {
+    ...raw,
+    demographics: {
+      ...raw.demographics,
+      // Clamp gender to the allowed literal union
+      gender: raw.demographics.gender === "M" ? "M" : "F",
+    },
+    // Normalise null from JSON into undefined for the optional field
+    source_case_id: raw.source_case_id ?? undefined,
+    available_labs: raw.available_labs.map((lab) => ({
+      ...lab,
+      // Narrow string to the LabFlag union; treat unknowns as "normal"
+      flag:
+        lab.flag === "high" ||
+        lab.flag === "low" ||
+        lab.flag === "critical"
+          ? lab.flag
+          : "normal",
+    })),
+    difficulty:
+      raw.difficulty === "easy" ||
+      raw.difficulty === "medium" ||
+      raw.difficulty === "hard"
+        ? raw.difficulty
+        : "medium",
+  };
+}
+
+export const mockApi: ApiClient = {
   async getCases(): Promise<Case[]> {
     const data = activeSession ?? mockSession;
-    return delay([data.case as Case], LATENCY.fast);
+    return delay([toCase(data)], LATENCY.fast);
   },
 
   async createSession(caseId: string): Promise<{ session_id: string }> {
@@ -87,7 +128,7 @@ export const mockApi = {
     return delay(
       {
         session: toSimulationSession(data),
-        case: data.case as Case,
+        case: toCase(data),
         messages,
         orderedLabs: [],
         resourcesUsed: 0,
@@ -134,16 +175,7 @@ export const mockApi = {
     resourcesUsed: number;
   }> {
     const data = activeSession ?? mockSession;
-    const caseData = data.case as Case;
-    const costPerLab: Record<string, number> = {
-      troponin: 2,
-      bnp: 2,
-      cbc: 2,
-      bmp: 3,
-      cmp: 4,
-      cardiac: 3,
-    };
-
+    const caseData = toCase(data);
     const orderedLabs: OrderedLab[] = labIds.map((id) => {
       const match = caseData.available_labs.find((lab) =>
         lab.lab_name.toLowerCase().includes(id.toLowerCase()),
@@ -151,7 +183,7 @@ export const mockApi = {
       return {
         id,
         name: match?.lab_name ?? id,
-        cost: costPerLab[id] ?? 1,
+        cost: LAB_COSTS[id] ?? 1,
         result: match,
       };
     });

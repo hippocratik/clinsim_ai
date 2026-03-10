@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { notFound } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { PatientChat } from "@/components/patient/PatientChat";
 import { VitalsPanel } from "@/components/clinical/VitalsPanel";
 import { LabsPanel } from "@/components/clinical/LabsPanel";
@@ -14,6 +14,7 @@ interface SessionClientProps {
 }
 
 export function SessionClient({ sessionId }: SessionClientProps) {
+  const router = useRouter();
   const {
     session,
     caseData,
@@ -37,14 +38,11 @@ export function SessionClient({ sessionId }: SessionClientProps) {
   }
 
   if (!session || !caseData) {
-    if (error) {
-      return (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-          Failed to load session: {error}
-        </div>
-      );
-    }
-    notFound();
+    return (
+      <div className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+        Failed to load session: {error ?? "Session not found"}
+      </div>
+    );
   }
 
   return (
@@ -56,11 +54,12 @@ export function SessionClient({ sessionId }: SessionClientProps) {
           onSubmitDiagnosis={async (payload) => {
             const res = await submitDiagnosis(payload);
             if (res) {
-              window.location.href = `/results/${encodeURIComponent(
-                session.session_id,
-              )}`;
+              router.push(
+                `/results/${encodeURIComponent(session.session_id)}`,
+              );
             }
           }}
+          caseDiagnoses={caseData.diagnoses}
         />
       </div>
 

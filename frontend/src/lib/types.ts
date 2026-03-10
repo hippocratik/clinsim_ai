@@ -84,6 +84,11 @@ export interface TraineeAction {
   cost: number;
 }
 
+/**
+ * TODO: Validate against backend Session model when Issue #3 ships.
+ * Assumed shape — backend must match or this type must be updated.
+ * Key risk: `current_score` may become a full CaseScore object, not a number.
+ */
 export interface SimulationSession {
   session_id: string;
   case_id: string;
@@ -141,4 +146,34 @@ export interface DiagnoseResponse {
   traineePath: string[];
   learningPoints: string[];
 }
+
+export interface GetSessionResponse {
+  session: SimulationSession;
+  case: Case;
+  messages: ChatMessage[];
+  orderedLabs: OrderedLab[];
+  resourcesUsed: number;
+  maxResources: number;
+}
+
+export interface OrderLabsResponse {
+  orderedLabs: OrderedLab[];
+  resourcesUsed: number;
+}
+
+export interface ApiClient {
+  getCases(): Promise<Case[]>;
+  createSession(caseId: string): Promise<{ session_id: string }>;
+  getSession(sessionId: string): Promise<GetSessionResponse>;
+  sendChat(
+    sessionId: string,
+    message: string,
+  ): Promise<{ response: string }>;
+  orderLabs(sessionId: string, labIds: string[]): Promise<OrderLabsResponse>;
+  submitDiagnosis(
+    sessionId: string,
+    diagnosis: DiagnoseRequest,
+  ): Promise<DiagnoseResponse>;
+}
+
 

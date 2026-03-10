@@ -7,50 +7,39 @@ interface DiagnosisModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (payload: DiagnoseRequest) => Promise<void>;
+  caseDiagnoses: Diagnosis[];
 }
-
-const ICD9_OPTIONS: Diagnosis[] = [
-  {
-    icd9_code: "410.11",
-    description: "Acute myocardial infarction, anterolateral wall",
-    is_primary: true,
-  },
-  {
-    icd9_code: "410.90",
-    description: "Acute myocardial infarction, unspecified site",
-    is_primary: true,
-  },
-  {
-    icd9_code: "411.1",
-    description: "Unstable angina",
-    is_primary: true,
-  },
-  {
-    icd9_code: "786.50",
-    description: "Chest pain, unspecified",
-    is_primary: true,
-  },
-];
 
 export function DiagnosisModal({
   isOpen,
   onClose,
   onSubmit,
+  caseDiagnoses,
 }: DiagnosisModalProps) {
   const [query, setQuery] = useState("");
   const [primary, setPrimary] = useState<Diagnosis | null>(null);
   const [diffs, setDiffs] = useState<Diagnosis[]>([]);
   const [reasoning, setReasoning] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const filteredOptions = useMemo(() => {
     const q = query.toLowerCase();
-    if (!q) return ICD9_OPTIONS;
-    return ICD9_OPTIONS.filter(
+    const base: Diagnosis[] = caseDiagnoses.length
+      ? caseDiagnoses
+      : [
+          {
+            icd9_code: "000.00",
+            description: "Unspecified diagnosis",
+            is_primary: true,
+          },
+        ];
+    if (!q) return base;
+    return base.filter(
       (opt) =>
         opt.icd9_code.includes(q) || opt.description.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [caseDiagnoses, query]);
 
   if (!isOpen) return null;
 
@@ -67,14 +56,6 @@ export function DiagnosisModal({
 
   const handleSubmit = async () => {
     if (!primary) return;
-    if (
-      !window.confirm(
-        "Submit diagnosis? This will end the case and show your results.",
-      )
-    ) {
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await onSubmit({
@@ -149,7 +130,7 @@ export function DiagnosisModal({
               </span>
             </div>
             <div className="mt-1 flex flex-wrap gap-1.5">
-              {ICD9_OPTIONS.map((opt) => (
+              {filteredOptions.map((opt) => (
                 <button
                   key={`diff-${opt.icd9_code}`}
                   type="button"
@@ -181,10 +162,18 @@ export function DiagnosisModal({
         </div>
 
         <footer className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
-          <p className="text-slate-600">
-            Submitting will lock in your decisions and show the scoring
-            breakdown.
-          </p>
+          <div className="max-w-xs text-slate-600">
+            <p>
+              Submitting will lock in your decisions and show the scoring
+              breakdown.
+            </p>
+            {showConfirm && (
+              <p className="mt-1 font-semibold text-rose-600">
+                Are you sure you want to submit? You will not be able to change
+                your diagnosis.
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <button
               type="button"
@@ -193,14 +182,35 @@ export function DiagnosisModal({
             >
               Cancel
             </button>
-            <button
-              type="button"
-              disabled={!primary || isSubmitting}
-              onClick={() => void handleSubmit()}
-              className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
-            >
-              {isSubmitting ? "Submitting…" : "Submit diagnosis"}
-            </button>
+            {showConfirm ? (
+              <>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setShowConfirm(false)}
+                  className="rounded-2xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                >
+                  Go back
+                </button>
+                <button
+                  type="button"
+                  disabled={!primary || isSubmitting}
+                  onClick={() => void handleSubmit()}
+                  className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                >
+                  {isSubmitting ? "Submitting…" : "Confirm submit"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                disabled={!primary}
+                onClick={() => setShowConfirm(true)}
+                className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              >
+                Review & submit
+              </button>
+            )}
           </div>
         </footer>
       </div>

@@ -32,7 +32,7 @@ export function usePatientChat(options: UsePatientChatOptions) {
   }, []);
 
   const streamPatientResponse = useCallback((fullText: string) => {
-    const id = `patient-${Date.now()}`;
+    const id = `patient-${crypto.randomUUID()}`;
     const createdAt = new Date().toISOString();
     setStreamingMessageId(id);
 
@@ -70,7 +70,7 @@ export function usePatientChat(options: UsePatientChatOptions) {
       setIsSending(true);
 
       const traineeMessage: ChatMessage = {
-        id: `trainee-${Date.now()}`,
+        id: `trainee-${crypto.randomUUID()}`,
         role: "trainee",
         content,
         createdAt: new Date().toISOString(),

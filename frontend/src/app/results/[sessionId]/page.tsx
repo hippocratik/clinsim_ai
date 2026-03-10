@@ -4,10 +4,6 @@ import { ScoreCard } from "@/components/results/ScoreCard";
 import { PathComparison } from "@/components/results/PathComparison";
 import type { DiagnoseResponse } from "@/lib/types";
 
-interface ResultsPageProps {
-  params: { sessionId: string };
-}
-
 async function loadMockResults(sessionId: string): Promise<DiagnoseResponse> {
   // For the mock build, we just call submitDiagnosis with a placeholder payload
   // to reuse the same scoring logic.
@@ -22,8 +18,10 @@ async function loadMockResults(sessionId: string): Promise<DiagnoseResponse> {
   return res;
 }
 
-export default async function ResultsPage({ params }: ResultsPageProps) {
-  const { sessionId } = params;
+export default async function ResultsPage(props: {
+  params: Promise<{ sessionId: string }>;
+}) {
+  const { sessionId } = await props.params;
   if (!sessionId) {
     redirect("/");
   }

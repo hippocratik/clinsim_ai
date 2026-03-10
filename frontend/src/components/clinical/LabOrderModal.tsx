@@ -1,19 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { LAB_COSTS } from "@/lib/constants";
 
 const LAB_CATEGORIES = {
   panels: [
-    { id: "cbc", name: "Complete Blood Count", cost: 2 },
-    { id: "bmp", name: "Basic Metabolic Panel", cost: 3 },
-    { id: "cmp", name: "Comprehensive Metabolic Panel", cost: 4 },
-    { id: "cardiac", name: "Cardiac Enzymes", cost: 3 },
+    { id: "cbc", name: "Complete Blood Count", cost: LAB_COSTS.cbc },
+    { id: "bmp", name: "Basic Metabolic Panel", cost: LAB_COSTS.bmp },
+    { id: "cmp", name: "Comprehensive Metabolic Panel", cost: LAB_COSTS.cmp },
+    { id: "cardiac", name: "Cardiac Enzymes", cost: LAB_COSTS.cardiac },
   ],
   individual: [
-    { id: "troponin", name: "Troponin", cost: 2 },
-    { id: "bnp", name: "BNP", cost: 2 },
-    { id: "ddimer", name: "D-Dimer", cost: 2 },
-    { id: "lactate", name: "Lactate", cost: 1 },
+    { id: "troponin", name: "Troponin", cost: LAB_COSTS.troponin },
+    { id: "bnp", name: "BNP", cost: LAB_COSTS.bnp },
+    { id: "ddimer", name: "D-Dimer", cost: LAB_COSTS.ddimer },
+    { id: "lactate", name: "Lactate", cost: LAB_COSTS.lactate },
   ],
 };
 
@@ -32,6 +33,11 @@ export function LabOrderModal({
 
   if (!isOpen) return null;
 
+  const handleClose = () => {
+    setSelected(new Set());
+    onClose();
+  };
+
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -42,9 +48,8 @@ export function LabOrderModal({
   };
 
   const totalCost = Array.from(selected).reduce((sum, id) => {
-    const all = [...LAB_CATEGORIES.panels, ...LAB_CATEGORIES.individual];
-    const lab = all.find((l) => l.id === id);
-    return sum + (lab?.cost ?? 0);
+    const cost = LAB_COSTS[id] ?? 1;
+    return sum + cost;
   }, 0);
 
   const handleConfirm = () => {
@@ -69,7 +74,7 @@ export function LabOrderModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-full px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
           >
             Esc
@@ -135,7 +140,7 @@ export function LabOrderModal({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="rounded-2xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
             >
               Cancel
