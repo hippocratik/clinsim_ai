@@ -176,9 +176,9 @@ async def chat(
 
     async def event_generator():
         full_response = []
-        async for token in llm_service.stream(
-            system=PATIENT_SYSTEM_PROMPT,
-            user=patient_prompt,
+        async for token in llm_service.generate_stream(
+            system_prompt=PATIENT_SYSTEM_PROMPT,
+            user_prompt=patient_prompt,
             max_tokens=300,
         ):
             full_response.append(token)
