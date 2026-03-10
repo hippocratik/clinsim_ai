@@ -12,7 +12,7 @@ from app.core.rag import RAGService
 from app.core.session_manager import SessionManager
 from app.core.scoring import ScoringEngine
 from app.core.llm import LLMProvider, LLMService
-from app.api.routes import cases, sessions, diagnoses, health
+from app.api.routes import cases, sessions, diagnoses, health, generation
 
 
 @asynccontextmanager
@@ -103,6 +103,7 @@ def create_app() -> FastAPI:
     app.include_router(cases.router)
     app.include_router(sessions.router)
     app.include_router(diagnoses.router)
+    app.include_router(generation.router)
 
     return app
 
