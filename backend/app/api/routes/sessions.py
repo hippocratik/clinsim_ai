@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.dependencies import (
@@ -35,7 +35,7 @@ class CreateSessionResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=2000)
 
 
 class LabRequest(BaseModel):
