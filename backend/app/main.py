@@ -41,6 +41,17 @@ async def lifespan(app: FastAPI):
     app.state.case_index = {c["case_id"]: c for c in case_list}
     app.state.generation_jobs = {}
 
+    # Build ICD-9 database from loaded cases for autocomplete
+    icd9_db = {}
+    for case in case_list:
+        for diag in case.get("diagnoses", []):
+            code = diag.get("icd9_code", "").strip()
+            desc = diag.get("description", "").strip()
+            if code and desc and code not in icd9_db:
+                icd9_db[code] = desc
+    app.state.icd9_db = icd9_db
+    print(f"  ✓ Loaded {len(icd9_db)} ICD-9 codes from cases")
+
     # Load chunks
     chunks_path = Path(settings.chunks_path)
     if chunks_path.exists():
@@ -66,8 +77,6 @@ async def lifespan(app: FastAPI):
         session_timeout_minutes=settings.session_timeout_minutes
     )
     app.state.scoring_engine = ScoringEngine()
-    # app.state.llm_service = LLMService()
-
     app.state.llm_service = LLMService(
         provider=LLMProvider(settings.llm_provider),
         anthropic_api_key=settings.anthropic_api_key,
