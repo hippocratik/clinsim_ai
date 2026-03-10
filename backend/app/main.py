@@ -62,7 +62,9 @@ async def lifespan(app: FastAPI):
         print(f"  ⚠ FAISS index not found at {faiss_path} — RAG disabled")
 
     app.state.rag_service = rag
-    app.state.session_manager = SessionManager()
+    app.state.session_manager = SessionManager(
+        session_timeout_minutes=settings.session_timeout_minutes
+    )
     app.state.scoring_engine = ScoringEngine()
     # app.state.llm_service = LLMService()
 

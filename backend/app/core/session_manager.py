@@ -100,9 +100,10 @@ class Session:
         return self.status == SessionStatus.ACTIVE and self.exam_count < self.max_exams
 
 
-class SessionManager:
-    def __init__(self):
+class SessionManager:    
+    def __init__(self, session_timeout_minutes: int = 60):
         self._sessions: dict[str, Session] = {}
+        self._timeout_minutes = session_timeout_minutes
 
     def create_session(self, case_id: str) -> Session:
         """Create a new simulation session."""
@@ -112,8 +113,18 @@ class SessionManager:
         return session
 
     def get_session(self, session_id: str) -> Optional[Session]:
-        """Retrieve a session by ID."""
-        return self._sessions.get(session_id)
+        """Retrieve a session by ID, expiring it if timeout exceeded."""
+        session = self._sessions.get(session_id)
+        if session is None:
+            return None
+        # Enforce timeout — only check active sessions
+        if session.status == SessionStatus.ACTIVE:
+            from datetime import timedelta
+            timeout = timedelta(minutes=self._timeout_minutes)
+            if datetime.utcnow() - session.started_at > timeout:
+                del self._sessions[session_id]
+                return None
+        return session
 
     def get_session_or_raise(self, session_id: str) -> Session:
         """Retrieve session or raise KeyError."""
