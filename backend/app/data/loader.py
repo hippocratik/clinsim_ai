@@ -40,10 +40,26 @@ def load_mimic_dataset() -> MIMICDataset:
     )
 
 def get_case_by_hadm_id(dataset: MIMICDataset, hadm_id: int) -> dict:
-    """Retrieve all data for a specific hospital admission."""
+    """Retrieve all data for a specific hospital admission.
+
+    Joins diagnoses with d_icd_diagnoses (via icd9_code) so each diagnosis
+    record includes long_title and short_title.
+
+    Joins labs with d_labitems (via itemid) so each lab record includes
+    lab_name, fluid, and category.
+    """
     case_data = dataset.clinical_cases[dataset.clinical_cases["hadm_id"] == hadm_id]
-    diagnoses = dataset.diagnoses[dataset.diagnoses["hadm_id"] == hadm_id]
-    labs = dataset.labs[dataset.labs["hadm_id"] == hadm_id]
+
+    diagnoses = (
+        dataset.diagnoses[dataset.diagnoses["hadm_id"] == hadm_id]
+        .merge(dataset.d_icd_diagnoses, on="icd9_code", how="left")
+    )
+
+    labs = (
+        dataset.labs[dataset.labs["hadm_id"] == hadm_id]
+        .merge(dataset.d_labitems, on="itemid", how="left")
+    )
+
     prescriptions = dataset.prescriptions[dataset.prescriptions["hadm_id"] == hadm_id]
 
     return {

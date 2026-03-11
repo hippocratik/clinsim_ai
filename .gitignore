@@ -79,3 +79,7 @@ checkpoints/
 !package.json
 *.parquet
 backend/data/
+
+# Local scripts and sprite assets
+/scripts/
+.sprite

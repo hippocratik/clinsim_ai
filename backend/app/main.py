@@ -11,7 +11,7 @@ settings = get_settings()
 from app.core.session_manager import SessionManager
 from app.core.scoring import ScoringEngine
 from app.core.llm import LLMProvider, LLMService
-from app.api.routes import cases, sessions, diagnoses, health, generation
+from app.api.routes import cases, sessions, diagnoses, health, generation, labs
 
 
 @asynccontextmanager
@@ -50,6 +50,16 @@ async def lifespan(app: FastAPI):
                 icd9_db[code] = desc
     app.state.icd9_db = icd9_db
     print(f"  ✓ Loaded {len(icd9_db)} ICD-9 codes from cases")
+
+    # Load lab dictionary for /api/labs endpoint
+    lab_dict_path = Path(settings.lab_dictionary_path)
+    if lab_dict_path.exists():
+        with open(lab_dict_path) as f:
+            app.state.lab_dictionary = json.load(f)
+        print(f"  ✓ Loaded {len(app.state.lab_dictionary)} lab items from {lab_dict_path}")
+    else:
+        app.state.lab_dictionary = []
+        print(f"  ⚠ lab_dictionary.json not found at {lab_dict_path} — labs endpoint will return empty")
 
     # Load chunks
     chunks_path = Path(settings.chunks_path)
@@ -120,6 +130,7 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router)
     app.include_router(diagnoses.router)
     app.include_router(generation.router)
+    app.include_router(labs.router)
 
     return app
 

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     cases_path: str = "data/cases.json"
     chunks_path: str = "data/chunks.json"
     faiss_index_path: str = "data/faiss.index"
+    lab_dictionary_path: str = "data/lab_dictionary.json"
 
     # RAG Settings
     rag_top_k: int = 5

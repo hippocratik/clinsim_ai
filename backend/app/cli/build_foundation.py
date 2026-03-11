@@ -76,6 +76,7 @@ async def build_foundation(num_cases: int = 20):
                 hadm_id=hadm_id,
                 diagnoses=case_data["diagnoses"],
                 labs=case_data["labs"],
+                prescriptions=case_data["prescriptions"],
                 age=case_data["case"].get("age", 50),
                 gender=case_data["case"].get("gender", "M")
             )
@@ -113,6 +114,12 @@ async def build_foundation(num_cases: int = 20):
     with open(data_dir / "cases.json", "w") as f:
         json.dump(cases_data, f, indent=2)
     print(f"  ✓ Saved {settings.cases_path}")
+
+    # Save lab dictionary
+    lab_dict = dataset.d_labitems.to_dict(orient="records")
+    with open(data_dir / "lab_dictionary.json", "w") as f:
+        json.dump(lab_dict, f, indent=2)
+    print(f"  ✓ Saved {settings.lab_dictionary_path}")
 
     # Save chunks and index
     builder.save_index(
