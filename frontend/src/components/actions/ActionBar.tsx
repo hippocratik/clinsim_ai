@@ -21,34 +21,35 @@ export function ActionBar({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs shadow-sm">
-        <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-3 shadow-sm">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onAskHistoryHint}
-            className="rounded-full bg-white px-3 py-1 font-medium text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-100"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            Ask history
+            📋 Ask history
           </button>
           <button
             type="button"
             onClick={onOrderLabs}
-            className="rounded-full bg-white px-3 py-1 font-medium text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-100"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            Order labs
+            🧪 Order labs
           </button>
           <button
             type="button"
             onClick={() => setShowDiagnosis(true)}
-            className="rounded-full bg-emerald-600 px-3 py-1 font-semibold text-white shadow-sm hover:bg-emerald-700"
+            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-base font-bold text-white shadow-sm transition hover:bg-emerald-700"
           >
-            Submit diagnosis
+            ✓ Submit diagnosis
           </button>
         </div>
-        <p className="text-[11px] text-slate-600">
+        <p className="text-sm text-slate-400">
           Each action has a cost. Aim for fast, focused reasoning.
         </p>
       </div>
+
       <DiagnosisModal
         isOpen={showDiagnosis}
         onClose={() => setShowDiagnosis(false)}
@@ -61,4 +62,3 @@ export function ActionBar({
     </>
   );
 }
-

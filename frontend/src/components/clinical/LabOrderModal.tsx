@@ -1,162 +1,169 @@
 "use client";
 
 import { useState } from "react";
-import { LAB_COSTS } from "@/lib/constants";
-
-const LAB_CATEGORIES = {
-  panels: [
-    { id: "cbc", name: "Complete Blood Count", cost: LAB_COSTS.cbc },
-    { id: "bmp", name: "Basic Metabolic Panel", cost: LAB_COSTS.bmp },
-    { id: "cmp", name: "Comprehensive Metabolic Panel", cost: LAB_COSTS.cmp },
-    { id: "cardiac", name: "Cardiac Enzymes", cost: LAB_COSTS.cardiac },
-  ],
-  individual: [
-    { id: "troponin", name: "Troponin", cost: LAB_COSTS.troponin },
-    { id: "bnp", name: "BNP", cost: LAB_COSTS.bnp },
-    { id: "ddimer", name: "D-Dimer", cost: LAB_COSTS.ddimer },
-    { id: "lactate", name: "Lactate", cost: LAB_COSTS.lactate },
-  ],
-};
 
 interface LabOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (labIds: string[]) => void;
+  onConfirm: (labIds: string[]) => Promise<void>;
 }
 
-export function LabOrderModal({
-  isOpen,
-  onClose,
-  onConfirm,
-}: LabOrderModalProps) {
+const PANELS = [
+  { id: "cbc",     label: "Complete Blood Count",      cost: 2, desc: "WBC, RBC, Hgb, Hct, Plt" },
+  { id: "bmp",     label: "Basic Metabolic Panel",     cost: 3, desc: "Na, K, Cl, CO₂, BUN, Cr, Glucose" },
+  { id: "cmp",     label: "Comprehensive Metabolic Panel", cost: 4, desc: "BMP + LFTs, albumin, total protein" },
+  { id: "cardiac", label: "Cardiac Enzymes",           cost: 3, desc: "Troponin, CK-MB, myoglobin" },
+];
+
+const INDIVIDUAL = [
+  { id: "troponin", label: "Troponin",  cost: 2 },
+  { id: "bnp",      label: "BNP",       cost: 2 },
+  { id: "ddimer",   label: "D-Dimer",   cost: 2 },
+  { id: "lactate",  label: "Lactate",   cost: 1 },
+  { id: "abg",      label: "ABG",       cost: 2 },
+  { id: "lipase",   label: "Lipase",    cost: 1 },
+  { id: "ua",       label: "Urinalysis",cost: 1 },
+  { id: "ptt",      label: "PT/PTT/INR",cost: 2 },
+];
+
+export function LabOrderModal({ isOpen, onClose, onConfirm }: LabOrderModalProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [isOrdering, setIsOrdering] = useState(false);
 
   if (!isOpen) return null;
-
-  const handleClose = () => {
-    setSelected(new Set());
-    onClose();
-  };
 
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  const totalCost = Array.from(selected).reduce((sum, id) => {
-    const cost = LAB_COSTS[id] ?? 1;
-    return sum + cost;
+  const totalCost = [...selected].reduce((acc, id) => {
+    const p = PANELS.find((x) => x.id === id);
+    const i = INDIVIDUAL.find((x) => x.id === id);
+    return acc + (p?.cost ?? i?.cost ?? 0);
   }, 0);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selected.size === 0) return;
-    onConfirm(Array.from(selected));
+    setIsOrdering(true);
+    await onConfirm([...selected]);
     setSelected(new Set());
+    setIsOrdering(false);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-xl">
-        <header className="mb-3 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900">
-              Order labs & tests
-            </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Choose focused tests that will meaningfully change your
-              management.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-full px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
-          >
-            Esc
-          </button>
-        </header>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
 
-        <div className="space-y-4 text-sm">
-          <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Panels
-            </h3>
-            <div className="mt-2 space-y-1.5">
-              {LAB_CATEGORIES.panels.map((lab) => (
-                <button
-                  key={lab.id}
-                  type="button"
-                  onClick={() => toggle(lab.id)}
-                  className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left text-xs ${
-                    selected.has(lab.id)
-                      ? "border-blue-500 bg-blue-50 text-blue-900"
-                      : "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100"
-                  }`}
-                >
-                  <span>{lab.name}</span>
-                  <span className="text-[11px] font-semibold text-slate-700">
-                    −{lab.cost}
-                  </span>
-                </button>
-              ))}
+        {/* Header */}
+        <div className="border-b border-slate-100 px-8 py-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Order labs & tests</h2>
+              <p className="mt-1.5 text-base text-slate-500">
+                Choose focused tests that will meaningfully change your management.
+              </p>
             </div>
-          </div>
-
-          <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Individual tests
-            </h3>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {LAB_CATEGORIES.individual.map((lab) => (
-                <button
-                  key={lab.id}
-                  type="button"
-                  onClick={() => toggle(lab.id)}
-                  className={`rounded-full px-3 py-1 text-[11px] ${
-                    selected.has(lab.id)
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
-                  }`}
-                >
-                  {lab.name} · −{lab.cost}
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-4 rounded-xl border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-500 hover:bg-slate-50"
+            >
+              Esc
+            </button>
           </div>
         </div>
 
-        <footer className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
-          <span className="text-slate-600">
+        {/* Body */}
+        <div className="max-h-[60vh] overflow-y-auto px-8 py-6 space-y-7">
+
+          {/* Panels */}
+          <section>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Panels</p>
+            <div className="space-y-2.5">
+              {PANELS.map((p) => {
+                const isSelected = selected.has(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggle(p.id)}
+                    className={`flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition ${
+                      isSelected
+                        ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
+                    }`}
+                  >
+                    <div>
+                      <p className={`text-lg font-semibold ${isSelected ? "text-emerald-800" : "text-slate-800"}`}>
+                        {p.label}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-500">{p.desc}</p>
+                    </div>
+                    <span className={`ml-4 shrink-0 text-lg font-bold ${isSelected ? "text-emerald-700" : "text-slate-500"}`}>
+                      −{p.cost}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Individual */}
+          <section>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Individual Tests</p>
+            <div className="flex flex-wrap gap-3">
+              {INDIVIDUAL.map((t) => {
+                const isSelected = selected.has(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggle(t.id)}
+                    className={`rounded-2xl border px-5 py-3 text-base font-semibold transition ${
+                      isSelected
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-200"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white"
+                    }`}
+                  >
+                    {t.label}
+                    <span className="ml-2 font-normal text-slate-400">· −{t.cost}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-slate-100 px-8 py-5">
+          <p className="text-base text-slate-600">
             Estimated cost:{" "}
-            <span className="font-semibold text-slate-900">
-              −{totalCost} points
-            </span>
-          </span>
-          <div className="flex gap-2">
+            <span className="font-bold text-slate-900">−{totalCost} points</span>
+          </p>
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleClose}
-              className="rounded-2xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+              onClick={onClose}
+              className="rounded-2xl border border-slate-200 px-6 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="button"
-              disabled={selected.size === 0}
-              onClick={handleConfirm}
-              className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              onClick={() => void handleConfirm()}
+              disabled={selected.size === 0 || isOrdering}
+              className="rounded-2xl bg-emerald-600 px-6 py-3 text-base font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-40"
             >
-              Order selected
+              {isOrdering ? "Ordering…" : `Order selected (${selected.size})`}
             </button>
           </div>
-        </footer>
+        </div>
       </div>
     </div>
   );
 }
-
