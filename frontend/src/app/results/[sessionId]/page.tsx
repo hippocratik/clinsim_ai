@@ -1,21 +1,15 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import { ScoreCard } from "@/components/results/ScoreCard";
 import { PathComparison } from "@/components/results/PathComparison";
 import type { DiagnoseResponse } from "@/lib/types";
 
-async function loadMockResults(sessionId: string): Promise<DiagnoseResponse> {
-  // For the mock build, we just call submitDiagnosis with a placeholder payload
-  // to reuse the same scoring logic.
-  const res = await api.submitDiagnosis(sessionId, {
-    primaryDiagnosis: {
-      icd9_code: "410.11",
-      description: "Acute myocardial infarction, anterolateral wall",
-      is_primary: true,
-    },
-    differentials: [],
-  });
-  return res;
+async function loadResults(sessionId: string): Promise<DiagnoseResponse | null> {
+  try {
+    return await api.getResults(sessionId);
+  } catch {
+    return null;
+  }
 }
 
 export default async function ResultsPage(props: {
@@ -26,7 +20,10 @@ export default async function ResultsPage(props: {
     redirect("/");
   }
 
-  const data = await loadMockResults(sessionId);
+  const data = await loadResults(sessionId);
+  if (!data) {
+    notFound();
+  }
 
   return (
     <div className="space-y-4">

@@ -1,11 +1,13 @@
 import uuid
+from typing import TYPE_CHECKING, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-from typing import Optional
 from app.dependencies import get_llm_service, get_rag_service, get_case_index
 from app.core.llm import LLMService
-from app.core.rag import RAGService
 from app.models import Case
+
+if TYPE_CHECKING:
+    from app.core.rag import RAGService
 
 router = APIRouter(prefix="/api/generate", tags=["generation"])
 
@@ -40,7 +42,7 @@ async def run_generation(
     job_id: str,
     request: GenerateRequest,
     llm_service: LLMService,
-    rag_service: RAGService,
+    rag_service: "RAGService",
     case_index: dict,
     generation_jobs: dict,
     app_state,
@@ -113,7 +115,7 @@ async def generate_case_variation(
     background_tasks: BackgroundTasks,
     req: Request,
     llm_service: LLMService = Depends(get_llm_service),
-    rag_service: RAGService = Depends(get_rag_service),
+    rag_service: "RAGService" = Depends(get_rag_service),
     case_index: dict = Depends(get_case_index),
 ):
     """

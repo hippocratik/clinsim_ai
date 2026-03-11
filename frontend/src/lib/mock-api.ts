@@ -244,5 +244,16 @@ export const mockApi: ApiClient = {
       LATENCY.medium,
     );
   },
+
+  async getResults(sessionId: string): Promise<DiagnoseResponse> {
+    return this.submitDiagnosis(sessionId, {
+      primaryDiagnosis: {
+        icd9_code: "410.11",
+        description: "Acute myocardial infarction",
+        is_primary: true,
+      },
+      differentials: [],
+    });
+  },
 };
 

@@ -4,18 +4,26 @@ All services are initialised once at startup via lifespan and
 stored in app.state, then exposed through these dependency functions.
 """
 
+from typing import TYPE_CHECKING, Optional
 from fastapi import Request, HTTPException
-from app.core.rag import RAGService
 from app.core.session_manager import SessionManager
+
+if TYPE_CHECKING:
+    from app.core.rag import RAGService
 from app.core.scoring import ScoringEngine
 from app.core.llm import LLMService
 
 
-def get_rag_service(request: Request) -> RAGService:
+def get_rag_service(request: Request) -> "RAGService":
     service: RAGService = request.app.state.rag_service
     if service is None:
         raise HTTPException(status_code=503, detail="RAG service unavailable")
     return service
+
+
+def get_rag_service_optional(request: Request) -> Optional["RAGService"]:
+    """Return RAG service if available, else None. Use for chat when RAG is disabled (e.g. torch not loaded)."""
+    return getattr(request.app.state, "rag_service", None)
 
 
 def get_session_manager(request: Request) -> SessionManager:

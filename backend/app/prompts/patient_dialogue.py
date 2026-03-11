@@ -131,13 +131,20 @@ def format_context_chunks(chunks) -> str:
 
 
 def format_conversation_history(chat_history: list) -> str:
-    """Format chat history for inclusion in the prompt."""
+    """Format chat history for inclusion in the prompt. Supports both ChatMessage objects and dicts."""
     if not chat_history:
         return "(No previous conversation)"
     lines = []
     for msg in chat_history[-10:]:  # last 10 messages for context window efficiency
-        role = getattr(msg, "role", msg.get("role", ""))
-        content = getattr(msg, "content", msg.get("content", ""))
+        if hasattr(msg, "role"):
+            role = msg.role
+            content = msg.content
+        elif isinstance(msg, dict):
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+        else:
+            role = ""
+            content = ""
         speaker = "Trainee" if role == "trainee" else "Patient"
         lines.append(f"{speaker}: {content}")
     return "\n".join(lines)

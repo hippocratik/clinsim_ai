@@ -174,6 +174,7 @@ export interface ApiClient {
     sessionId: string,
     diagnosis: DiagnoseRequest,
   ): Promise<DiagnoseResponse>;
+  getResults(sessionId: string): Promise<DiagnoseResponse>;
 }
 
 

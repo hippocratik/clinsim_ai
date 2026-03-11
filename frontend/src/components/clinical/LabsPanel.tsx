@@ -65,8 +65,9 @@ export function LabsPanel({
                 <p className="font-medium text-slate-900">{lab.name}</p>
                 {lab.result && (
                   <p className="mt-0.5 text-[11px] text-slate-600">
-                    {lab.result.value} {lab.result.unit} ·{" "}
-                    <span className="uppercase">{lab.result.flag}</span>
+                    {lab.result.unit
+                      ? `${lab.result.value} ${lab.result.unit} · ${lab.result.flag}`
+                      : lab.result.value}
                   </p>
                 )}
               </div>
