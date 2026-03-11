@@ -130,7 +130,16 @@ class ScoringEngine:
 
     @staticmethod
     def _normalise(code: str) -> str:
-        return code.strip().upper().replace("-", "").replace(".", "")
+        """Normalize ICD-9 code for comparison.
+
+        - Strip whitespace
+        - Remove dots
+        - Remove leading zeros
+        - Uppercase
+
+        This lets codes like `0410.11`, `410.11`, and `41011` all compare equal.
+        """
+        return code.replace(".", "").lstrip("0").strip().upper()
 
     def _icd9_match(self, submitted: str, correct_codes: list[str]) -> bool:
         norm_sub = self._normalise(submitted)

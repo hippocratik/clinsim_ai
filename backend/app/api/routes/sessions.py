@@ -47,6 +47,7 @@ class ExamRequest(BaseModel):
 
 class DiagnoseRequest(BaseModel):
     primary_diagnosis: str
+    primary_description: str = ""
     differentials: list[str] = []
 
 
@@ -312,7 +313,12 @@ def submit_diagnosis(
     if session.status != SessionStatus.ACTIVE:
         raise HTTPException(status_code=400, detail="Session is not active")
 
-    session_manager.submit_diagnosis(session_id, body.primary_diagnosis, body.differentials)
+    session_manager.submit_diagnosis(
+        session_id,
+        body.primary_diagnosis,
+        body.differentials,
+        primary_description=body.primary_description or "",
+    )
 
     # Score immediately
     case_data = case_index.get(session.case_id)

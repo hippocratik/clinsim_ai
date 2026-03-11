@@ -28,6 +28,7 @@ export function SessionClient({ sessionId }: SessionClientProps) {
   } = useSession(sessionId);
 
   const [isLabModalOpen, setLabModalOpen] = React.useState(false);
+  const sendMessageRef = React.useRef<((text: string) => Promise<void>) | null>(null);
 
   if (isLoading) {
     return (
@@ -53,9 +54,15 @@ export function SessionClient({ sessionId }: SessionClientProps) {
         </div>
       )}
       <div className="flex flex-col gap-3">
-        <PatientChat sessionId={session.session_id} />
+        <PatientChat
+          sessionId={session.session_id}
+          sendMessageRef={sendMessageRef}
+        />
         <ActionBar
           onOrderLabs={() => setLabModalOpen(true)}
+          onAskHistoryHint={() => {
+            sendMessageRef.current?.("Tell me about your medical history.");
+          }}
           onSubmitDiagnosis={async (payload) => {
             const res = await submitDiagnosis(payload);
             if (res) {

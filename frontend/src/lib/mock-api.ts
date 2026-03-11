@@ -256,5 +256,38 @@ export const mockApi: ApiClient = {
       differentials: [],
     });
   },
+
+  async searchDiagnoses(query: string): Promise<Diagnosis[]> {
+    const q = query.toLowerCase();
+    const base: Diagnosis[] = [
+      {
+        icd9_code: "410.11",
+        description:
+          "Acute myocardial infarction, STEMI, initial episode",
+        is_primary: true,
+      },
+      {
+        icd9_code: "486",
+        description: "Pneumonia, organism unspecified",
+        is_primary: false,
+      },
+      {
+        icd9_code: "401.9",
+        description: "Essential hypertension, unspecified",
+        is_primary: false,
+      },
+      {
+        icd9_code: "786.50",
+        description: "Chest pain, unspecified",
+        is_primary: false,
+      },
+    ];
+    if (!q) return base;
+    return base.filter(
+      (d) =>
+        d.icd9_code.toLowerCase().includes(q) ||
+        d.description.toLowerCase().includes(q),
+    );
+  },
 };
 
