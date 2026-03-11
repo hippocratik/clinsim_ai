@@ -20,7 +20,8 @@ def list_labs(lab_dictionary: list[dict] = Depends(get_lab_dictionary)):
     """Return all labs from d_labitems grouped by category."""
     grouped: dict[str, list[LabItem]] = defaultdict(list)
     for lab in lab_dictionary:
-        grouped[lab["category"]].append(
+        category = lab.get("category") or "Uncategorized"
+        grouped[category].append(
             LabItem(
                 itemid=lab["itemid"],
                 lab_name=lab["lab_name"],

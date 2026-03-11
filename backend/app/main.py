@@ -52,14 +52,14 @@ async def lifespan(app: FastAPI):
     print(f"  ✓ Loaded {len(icd9_db)} ICD-9 codes from cases")
 
     # Load lab dictionary for /api/labs endpoint
-    from app.data.loader import load_mimic_dataset
-    try:
-        dataset = load_mimic_dataset()
-        app.state.lab_dictionary = dataset.d_labitems.to_dict(orient="records")
-        print(f"  ✓ Loaded {len(app.state.lab_dictionary)} lab items from d_labitems")
-    except Exception as e:
+    lab_dict_path = Path(settings.lab_dictionary_path)
+    if lab_dict_path.exists():
+        with open(lab_dict_path) as f:
+            app.state.lab_dictionary = json.load(f)
+        print(f"  ✓ Loaded {len(app.state.lab_dictionary)} lab items from {lab_dict_path}")
+    else:
         app.state.lab_dictionary = []
-        print(f"  ⚠ Lab dictionary unavailable: {e}")
+        print(f"  ⚠ lab_dictionary.json not found at {lab_dict_path} — labs endpoint will return empty")
 
     # Load chunks
     chunks_path = Path(settings.chunks_path)
