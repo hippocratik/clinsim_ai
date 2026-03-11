@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-from app.dependencies import get_llm_service, get_rag_service, get_case_index
+from app.dependencies import get_llm_service, get_rag_service_optional, get_case_index
 from app.core.llm import LLMService
 from app.models import Case
 
@@ -115,13 +115,22 @@ async def generate_case_variation(
     background_tasks: BackgroundTasks,
     req: Request,
     llm_service: LLMService = Depends(get_llm_service),
-    rag_service: "RAGService" = Depends(get_rag_service),
+    rag_service = Depends(get_rag_service_optional),
     case_index: dict = Depends(get_case_index),
 ):
     """
     Create a new case generation job.
     Returns a job_id immediately — poll GET /api/generate/{job_id} for status.
     """
+    if rag_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "RAG service unavailable. Case generation requires RAG for grounding. "
+                "Fix PyTorch/sentence-transformers on this machine (WinError 1114), "
+                "or run the backend in an environment where torch can load."
+            ),
+        )
     job_id = str(uuid.uuid4())
 
     req.app.state.generation_jobs[job_id] = {

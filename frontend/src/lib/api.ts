@@ -4,6 +4,7 @@ import type {
   ApiClient,
   Case,
   ChatMessage,
+  Difficulty,
   DiagnoseRequest,
   DiagnoseResponse,
   GetSessionResponse,
@@ -11,7 +12,6 @@ import type {
   OrderLabsResponse,
   SimulationSession,
 } from "./types";
-import type { Difficulty } from "./types";
 
 const useMock =
   process.env.NEXT_PUBLIC_API_MODE === "mock" ||
@@ -31,10 +31,43 @@ interface CaseListItem {
   is_generated: boolean;
 }
 
+interface CaseDetailSafe {
+  case_id: string;
+  subject_id: number;
+  hadm_id: number;
+  demographics: { age: number; gender: "M" | "F"; admission_type: string };
+  presenting_complaint: string;
+  hpi: string;
+  past_medical_history: string[];
+  medications: string[];
+  allergies: string[];
+  physical_exam: {
+    vitals: {
+      heart_rate: number | null;
+      blood_pressure: string | null;
+      respiratory_rate: number | null;
+      temperature: number | null;
+      spo2: number | null;
+    };
+    findings: string;
+  };
+  available_labs: Array<{
+    lab_name: string;
+    value: string;
+    unit: string;
+    flag: "normal" | "high" | "low" | "critical";
+  }>;
+  difficulty: string;
+  specialties: string[];
+  source_case_id?: string | null;
+  is_generated: boolean;
+}
+
 interface SessionStateResponse {
   session_id: string;
   case_id: string;
   status: string;
+  started_at: string;
   question_count: number;
   lab_count: number;
   exam_count: number;
@@ -99,6 +132,50 @@ function caseListItemToCase(item: CaseListItem): Case {
   };
 }
 
+function caseDetailSafeToCase(detail: CaseDetailSafe): Case {
+  const difficulty: Difficulty =
+    detail.difficulty === "easy" || detail.difficulty === "medium" || detail.difficulty === "hard"
+      ? detail.difficulty
+      : "medium";
+  return {
+    case_id: detail.case_id,
+    subject_id: detail.subject_id ?? 0,
+    hadm_id: detail.hadm_id ?? 0,
+    demographics: {
+      age: detail.demographics?.age ?? 0,
+      gender: detail.demographics?.gender === "F" ? "F" : "M",
+      admission_type: detail.demographics?.admission_type ?? "Unknown",
+    },
+    presenting_complaint: detail.presenting_complaint ?? "",
+    hpi: detail.hpi ?? "",
+    past_medical_history: detail.past_medical_history ?? [],
+    medications: detail.medications ?? [],
+    allergies: detail.allergies ?? [],
+    physical_exam: {
+      vitals: {
+        heart_rate: detail.physical_exam?.vitals?.heart_rate ?? null,
+        blood_pressure: detail.physical_exam?.vitals?.blood_pressure ?? null,
+        respiratory_rate: detail.physical_exam?.vitals?.respiratory_rate ?? null,
+        temperature: detail.physical_exam?.vitals?.temperature ?? null,
+        spo2: detail.physical_exam?.vitals?.spo2 ?? null,
+      },
+      findings: detail.physical_exam?.findings ?? "",
+    },
+    available_labs: (detail.available_labs ?? []).map((l) => ({
+      lab_name: l.lab_name,
+      value: l.value,
+      unit: l.unit,
+      flag: l.flag,
+    })),
+    diagnoses: [],
+    discharge_summary: "",
+    difficulty,
+    specialties: detail.specialties ?? [],
+    source_case_id: detail.source_case_id ?? undefined,
+    is_generated: detail.is_generated ?? false,
+  };
+}
+
 function mapBackendScoreToCaseScore(
   sessionId: string,
   score: BackendScore,
@@ -108,7 +185,8 @@ function mapBackendScoreToCaseScore(
 ) {
   return {
     session_id: sessionId,
-    diagnostic_accuracy: score.total / 100,
+    // Backend total max is 120 (40 + 30 + 30 + 20). Normalize and clamp to [0, 1].
+    diagnostic_accuracy: Math.min(score.total / 120, 1),
     primary_diagnosis_correct: score.primary_diagnosis >= 40,
     differential_score: score.differential / 30,
     efficiency_score: score.efficiency / 30,
@@ -181,26 +259,30 @@ const realApi: ApiClient = {
     }
     const state: SessionStateResponse = await res.json();
 
-    let caseItem: CaseListItem;
+    let caseData: Case;
     try {
-      const caseRes = await fetch(`${apiPrefix}/cases/${encodeURIComponent(state.case_id)}`);
-      if (!caseRes.ok) throw new Error("Case not found");
-      caseItem = await caseRes.json();
-    } catch {
-      caseItem = {
-        case_id: state.case_id,
-        difficulty: "medium",
-        specialties: [],
-        presenting_complaint: "",
-        is_generated: false,
-      };
+      const caseRes = await fetch(
+        `${apiPrefix}/cases/${encodeURIComponent(state.case_id)}/detail`,
+      );
+      if (!caseRes.ok) {
+        const text = await caseRes.text();
+        throw new Error(text || "Case detail not available");
+      }
+      const detail: CaseDetailSafe = await caseRes.json();
+      caseData = caseDetailSafeToCase(detail);
+    } catch (e) {
+      // Fallback to list item stub, but do NOT silently pretend it's complete.
+      const stubRes = await fetch(`${apiPrefix}/cases/${encodeURIComponent(state.case_id)}`);
+      if (!stubRes.ok) throw new Error("Case not found");
+      const item: CaseListItem = await stubRes.json();
+      caseData = caseListItemToCase(item);
     }
 
     const session: SimulationSession = {
       session_id: state.session_id,
       case_id: state.case_id,
       trainee_id: "trainee",
-      started_at: state.chat_history?.[0]?.timestamp ?? new Date().toISOString(),
+      started_at: state.started_at,
       status: state.status === "completed" ? "completed" : state.status === "abandoned" ? "abandoned" : "active",
       revealed_info: [],
       ordered_labs: state.labs_ordered.map((l) => l.lab_name),
@@ -227,15 +309,25 @@ const realApi: ApiClient = {
       },
     }));
 
-    const resourcesUsed = orderedLabs.reduce((sum, lab) => sum + lab.cost, 0);
+    // Backend enforces separate limits for questions/labs/exams. Expose a combined budget based on counts
+    // so the UI doesn't misleadingly treat max_labs as the total encounter budget.
+    const resourcesUsed =
+      (state.question_count ?? 0) +
+      (state.lab_count ?? 0) +
+      (state.exam_count ?? 0);
+    const maxResources =
+      (state.max_questions ?? 0) +
+      (state.max_labs ?? 0) +
+      (state.max_exams ?? 0) ||
+      100;
 
     return {
       session,
-      case: caseListItemToCase(caseItem),
+      case: caseData,
       messages,
       orderedLabs,
       resourcesUsed,
-      maxResources: state.max_labs ?? 100,
+      maxResources,
     };
   },
 
@@ -285,6 +377,11 @@ const realApi: ApiClient = {
         // ignore
       }
     }
+
+    if (!fullResponse.trim()) {
+      throw new Error("Empty response from patient");
+    }
+
     return { response: fullResponse };
   },
 
@@ -293,32 +390,45 @@ const realApi: ApiClient = {
     labIds: string[]
   ): Promise<OrderLabsResponse> {
     const orderedLabs: OrderedLab[] = [];
+    const failedLabs: Array<{ id: string; reason: string }> = [];
     for (const id of labIds) {
-      const labName = id;
-      const res = await fetch(`${apiPrefix}/sessions/${encodeURIComponent(sessionId)}/labs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lab_name: labName }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Lab order failed");
+      try {
+        const res = await fetch(`${apiPrefix}/sessions/${encodeURIComponent(sessionId)}/labs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lab_name: id }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          failedLabs.push({ id, reason: text || "Lab order failed" });
+          continue;
+        }
+        const data = (await res.json()) as { lab_name: string; result: string };
+        orderedLabs.push({
+          id: data.lab_name,
+          name: data.lab_name,
+          cost: LAB_COSTS[data.lab_name] ?? 1,
+          result: {
+            lab_name: data.lab_name,
+            value: data.result,
+            unit: "",
+            flag: "normal",
+          },
+        });
+      } catch (e) {
+        failedLabs.push({
+          id,
+          reason: e instanceof Error ? e.message : "Lab order failed",
+        });
       }
-      const data = (await res.json()) as { lab_name: string; result: string };
-      orderedLabs.push({
-        id: data.lab_name,
-        name: data.lab_name,
-        cost: LAB_COSTS[data.lab_name] ?? 1,
-        result: {
-          lab_name: data.lab_name,
-          value: data.result,
-          unit: "",
-          flag: "normal",
-        },
-      });
     }
-    const resourcesUsed = orderedLabs.reduce((sum, lab) => sum + lab.cost, 0);
-    return { orderedLabs, resourcesUsed };
+    // Report resource usage as count of successfully ordered labs (backend limit is a count).
+    const resourcesUsed = orderedLabs.length;
+    return {
+      orderedLabs,
+      resourcesUsed,
+      failedLabs: failedLabs.length ? failedLabs : undefined,
+    };
   },
 
   async submitDiagnosis(

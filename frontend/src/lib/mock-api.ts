@@ -173,6 +173,7 @@ export const mockApi: ApiClient = {
   ): Promise<{
     orderedLabs: OrderedLab[];
     resourcesUsed: number;
+    failedLabs?: Array<{ id: string; reason: string }>;
   }> {
     const data = activeSession ?? mockSession;
     const caseData = toCase(data);
@@ -188,7 +189,7 @@ export const mockApi: ApiClient = {
       };
     });
 
-    const resourcesUsed = orderedLabs.reduce((sum, lab) => sum + lab.cost, 0);
+    const resourcesUsed = orderedLabs.length;
 
     return delay(
       {
@@ -246,7 +247,7 @@ export const mockApi: ApiClient = {
   },
 
   async getResults(sessionId: string): Promise<DiagnoseResponse> {
-    return this.submitDiagnosis(sessionId, {
+    return mockApi.submitDiagnosis(sessionId, {
       primaryDiagnosis: {
         icd9_code: "410.11",
         description: "Acute myocardial infarction",

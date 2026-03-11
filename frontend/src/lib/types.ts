@@ -159,6 +159,10 @@ export interface GetSessionResponse {
 export interface OrderLabsResponse {
   orderedLabs: OrderedLab[];
   resourcesUsed: number;
+  failedLabs?: Array<{
+    id: string;
+    reason: string;
+  }>;
 }
 
 export interface ApiClient {

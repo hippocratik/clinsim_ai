@@ -54,6 +54,7 @@ class SessionStateResponse(BaseModel):
     session_id: str
     case_id: str
     status: str
+    started_at: datetime
     question_count: int
     lab_count: int
     exam_count: int
@@ -73,6 +74,7 @@ def _session_to_state(session) -> SessionStateResponse:
         session_id=session.session_id,
         case_id=session.case_id,
         status=session.status.value,
+        started_at=session.started_at,
         question_count=session.question_count,
         lab_count=session.lab_count,
         exam_count=session.exam_count,

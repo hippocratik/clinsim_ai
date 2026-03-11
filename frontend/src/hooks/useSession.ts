@@ -66,19 +66,18 @@ export function useSession(sessionId: string) {
     async (labIds: string[]) => {
       if (!state.session || labIds.length === 0) return;
       setState((prev) => ({ ...prev, error: undefined }));
-      try {
-        const res = await api.orderLabs(state.session.session_id, labIds);
-        setState((prev) => ({
-          ...prev,
-          orderedLabs: [...prev.orderedLabs, ...res.orderedLabs],
-          resourcesUsed: prev.resourcesUsed + res.resourcesUsed,
-        }));
-      } catch (err) {
-        setState((prev) => ({
-          ...prev,
-          error: err instanceof Error ? err.message : "Lab order failed",
-        }));
-      }
+      const res = await api.orderLabs(state.session.session_id, labIds);
+      setState((prev) => ({
+        ...prev,
+        orderedLabs: [...prev.orderedLabs, ...res.orderedLabs],
+        resourcesUsed: prev.resourcesUsed + res.resourcesUsed,
+        error:
+          res.failedLabs && res.failedLabs.length
+            ? `Some labs could not be ordered: ${res.failedLabs
+                .map((f) => `${f.id} (${f.reason})`)
+                .join(", ")}`
+            : prev.error,
+      }));
     },
     [state.session],
   );

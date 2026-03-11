@@ -4,14 +4,14 @@ All services are initialised once at startup via lifespan and
 stored in app.state, then exposed through these dependency functions.
 """
 
+from app.core.scoring import ScoringEngine
+from app.core.llm import LLMService
 from typing import TYPE_CHECKING, Optional
 from fastapi import Request, HTTPException
 from app.core.session_manager import SessionManager
 
 if TYPE_CHECKING:
     from app.core.rag import RAGService
-from app.core.scoring import ScoringEngine
-from app.core.llm import LLMService
 
 
 def get_rag_service(request: Request) -> "RAGService":
