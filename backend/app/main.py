@@ -85,7 +85,6 @@ async def lifespan(app: FastAPI):
     app.state.llm_service = LLMService(
         provider=LLMProvider(settings.llm_provider),
         anthropic_api_key=settings.anthropic_api_key,
-        openai_api_key=settings.openai_api_key,
     )
 
     print("  ✓ Session manager ready")
