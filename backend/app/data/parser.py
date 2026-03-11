@@ -36,6 +36,7 @@ def build_case_from_parsed(
     hadm_id: int,
     diagnoses: list[dict],
     labs: list[dict],
+    prescriptions: list[dict],
     age: int,
     gender: str,
     admission_type: str = "EMERGENCY"
@@ -104,7 +105,7 @@ def build_case_from_parsed(
         presenting_complaint=parsed.get("presenting_complaint", ""),
         hpi=parsed.get("hpi", ""),
         past_medical_history=parsed.get("past_medical_history", []),
-        medications=parsed.get("medications", []),
+        medications=_merge_medications(parsed.get("medications", []), prescriptions),
         allergies=parsed.get("allergies", []),
         physical_exam=physical_exam,
         available_labs=lab_results,
@@ -114,6 +115,22 @@ def build_case_from_parsed(
         specialties=specialties,
         is_generated=False
     )
+
+def _merge_medications(parsed_meds: list, prescriptions: list[dict]) -> list:
+    """Merge LLM-parsed medication names with structured prescriptions table data.
+
+    Returns a unified list: starts from parsed_meds (strings from discharge
+    summary) and appends any drug names from prescriptions not already present.
+    """
+    existing = {m.lower() if isinstance(m, str) else str(m).lower() for m in parsed_meds}
+    merged = list(parsed_meds)
+    for rx in prescriptions:
+        drug = rx.get("drug", "")
+        if drug and drug.lower() not in existing:
+            merged.append(drug)
+            existing.add(drug.lower())
+    return merged
+
 
 def _infer_specialties(diagnoses: list[Diagnosis]) -> list[str]:
     """Infer medical specialties from diagnosis descriptions."""

@@ -76,6 +76,7 @@ async def build_foundation(num_cases: int = 20):
                 hadm_id=hadm_id,
                 diagnoses=case_data["diagnoses"],
                 labs=case_data["labs"],
+                prescriptions=case_data["prescriptions"],
                 age=case_data["case"].get("age", 50),
                 gender=case_data["case"].get("gender", "M")
             )

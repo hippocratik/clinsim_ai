@@ -11,7 +11,7 @@ settings = get_settings()
 from app.core.session_manager import SessionManager
 from app.core.scoring import ScoringEngine
 from app.core.llm import LLMProvider, LLMService
-from app.api.routes import cases, sessions, diagnoses, health, generation
+from app.api.routes import cases, sessions, diagnoses, health, generation, labs
 
 
 @asynccontextmanager
@@ -51,6 +51,16 @@ async def lifespan(app: FastAPI):
     app.state.icd9_db = icd9_db
     print(f"  ✓ Loaded {len(icd9_db)} ICD-9 codes from cases")
 
+    # Load lab dictionary for /api/labs endpoint
+    from app.data.loader import load_mimic_dataset
+    try:
+        dataset = load_mimic_dataset()
+        app.state.lab_dictionary = dataset.d_labitems.to_dict(orient="records")
+        print(f"  ✓ Loaded {len(app.state.lab_dictionary)} lab items from d_labitems")
+    except Exception as e:
+        app.state.lab_dictionary = []
+        print(f"  ⚠ Lab dictionary unavailable: {e}")
+
     # Load chunks
     chunks_path = Path(settings.chunks_path)
     if chunks_path.exists():
@@ -85,7 +95,6 @@ async def lifespan(app: FastAPI):
     app.state.llm_service = LLMService(
         provider=LLMProvider(settings.llm_provider),
         anthropic_api_key=settings.anthropic_api_key,
-        openai_api_key=settings.openai_api_key,
     )
 
     print("  ✓ Session manager ready")
@@ -121,6 +130,7 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router)
     app.include_router(diagnoses.router)
     app.include_router(generation.router)
+    app.include_router(labs.router)
 
     return app
 

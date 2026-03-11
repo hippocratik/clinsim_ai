@@ -54,6 +54,7 @@ def test_build_case_from_parsed():
         hadm_id=456,
         diagnoses=diagnoses,
         labs=labs,
+        prescriptions=[],
         age=55,
         gender="M"
     )
