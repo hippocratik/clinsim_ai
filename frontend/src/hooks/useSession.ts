@@ -46,10 +46,12 @@ export function useSession(sessionId: string) {
         });
       } catch (err) {
         if (cancelled) return;
+        const message =
+          err instanceof Error ? err.message : "Failed to load session";
         setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: err instanceof Error ? err.message : "Failed to load session",
+          error: message,
         }));
       }
     }
@@ -63,11 +65,18 @@ export function useSession(sessionId: string) {
   const orderLabs = useCallback(
     async (labIds: string[]) => {
       if (!state.session || labIds.length === 0) return;
+      setState((prev) => ({ ...prev, error: undefined }));
       const res = await api.orderLabs(state.session.session_id, labIds);
       setState((prev) => ({
         ...prev,
         orderedLabs: [...prev.orderedLabs, ...res.orderedLabs],
         resourcesUsed: prev.resourcesUsed + res.resourcesUsed,
+        error:
+          res.failedLabs && res.failedLabs.length
+            ? `Some labs could not be ordered: ${res.failedLabs
+                .map((f) => `${f.id} (${f.reason})`)
+                .join(", ")}`
+            : prev.error,
       }));
     },
     [state.session],
@@ -76,7 +85,16 @@ export function useSession(sessionId: string) {
   const submitDiagnosis = useCallback(
     async (payload: DiagnoseRequest): Promise<DiagnoseResponse | null> => {
       if (!state.session) return null;
-      return api.submitDiagnosis(state.session.session_id, payload);
+      setState((prev) => ({ ...prev, error: undefined }));
+      try {
+        return await api.submitDiagnosis(state.session.session_id, payload);
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : "Submit diagnosis failed",
+        }));
+        return null;
+      }
     },
     [state.session],
   );

@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 settings = get_settings()
-from app.core.rag import RAGService
 from app.core.session_manager import SessionManager
 from app.core.scoring import ScoringEngine
 from app.core.llm import LLMProvider, LLMService
@@ -62,12 +61,18 @@ async def lifespan(app: FastAPI):
         chunks = []
         print(f"  ⚠ chunks.json not found at {chunks_path} — using empty list")
 
-    # Load FAISS index
+    # Load FAISS index and RAG only when index exists (avoids loading torch/sentence_transformers otherwise).
+    # If torch/sentence_transformers fail to load (e.g. WinError 1114 on Windows), RAG is disabled but app still starts.
     faiss_path = Path(settings.faiss_index_path)
     if faiss_path.exists() and chunks:
-        faiss_index = faiss.read_index(str(faiss_path))
-        rag = RAGService(faiss_index, chunks, settings.embedding_model)
-        print(f"  ✓ RAG service ready (index: {faiss_path})")
+        try:
+            from app.core.rag import RAGService
+            faiss_index = faiss.read_index(str(faiss_path))
+            rag = RAGService(faiss_index, chunks, settings.embedding_model)
+            print(f"  ✓ RAG service ready (index: {faiss_path})")
+        except Exception as e:
+            rag = None
+            print(f"  ⚠ RAG disabled (failed to load: {e})")
     else:
         rag = None
         print(f"  ⚠ FAISS index not found at {faiss_path} — RAG disabled")

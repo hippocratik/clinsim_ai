@@ -13,7 +13,28 @@ const difficultyLabels: Record<Difficulty, string> = {
 };
 
 export default async function Home() {
-  const cases = await loadCases();
+  const apiMode = process.env.NEXT_PUBLIC_API_MODE ?? "mock";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+  let cases: Case[];
+  try {
+    cases = await loadCases();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to load cases";
+    return (
+      <div className="space-y-4">
+        <section className="rounded-3xl border border-rose-200 bg-rose-50 p-5">
+          <h1 className="text-xl font-semibold text-rose-900">Case library</h1>
+          <p className="mt-2 text-sm text-rose-800">
+            Could not load cases: {message}
+          </p>
+          <p className="mt-1 text-xs text-rose-700">
+            API: {apiMode} {apiUrl ? ` · ${apiUrl}` : ""}. Ensure backend is running and .env.local is set (restart dev server after changing it).
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   const specialties = Array.from(
     new Set(cases.flatMap((c) => c.specialties || [])),
@@ -22,9 +43,14 @@ export default async function Home() {
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">
-          Case library
-        </h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-xl font-semibold text-slate-900">
+            Case library
+          </h1>
+          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600" title={apiUrl || undefined}>
+            API: {apiMode}
+          </span>
+        </div>
         <p className="mt-1 text-sm text-slate-600">
           Choose a real-data grounded case to simulate a focused emergency or
           internal medicine encounter.
@@ -60,13 +86,17 @@ export default async function Home() {
                 </span>
               </div>
               <p className="text-xs text-slate-600 line-clamp-3">
-                {c.hpi}
+                {c.hpi || c.presenting_complaint}
               </p>
-              <p className="text-xs text-slate-500">
-                {c.demographics.age}-year-old{" "}
-                {c.demographics.gender === "M" ? "male" : "female"} · Admission:{" "}
-                {c.demographics.admission_type.toLowerCase()}
-              </p>
+              {c.demographics.age > 0 && (
+                <p className="text-xs text-slate-500">
+                  {c.demographics.age}-year-old{" "}
+                  {c.demographics.gender === "M" ? "male" : "female"}
+                  {c.demographics.admission_type && c.demographics.admission_type !== "Unknown" && (
+                    <> · Admission: {c.demographics.admission_type.toLowerCase()}</>
+                  )}
+                </p>
+              )}
             </div>
             <div className="mt-3 flex items-center justify-between text-xs">
               <div className="flex flex-wrap gap-1">

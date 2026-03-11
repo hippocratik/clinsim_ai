@@ -6,10 +6,9 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.dependencies import (
-    get_rag_service, get_session_manager, get_scoring_engine,
+    get_rag_service, get_rag_service_optional, get_session_manager, get_scoring_engine,
     get_llm_service, get_case_index,
 )
-from app.core.rag import RAGService
 from app.core.session_manager import SessionManager, SessionStatus
 from app.core.scoring import ScoringEngine
 from app.core.llm import LLMService
@@ -55,6 +54,7 @@ class SessionStateResponse(BaseModel):
     session_id: str
     case_id: str
     status: str
+    started_at: datetime
     question_count: int
     lab_count: int
     exam_count: int
@@ -74,6 +74,7 @@ def _session_to_state(session) -> SessionStateResponse:
         session_id=session.session_id,
         case_id=session.case_id,
         status=session.status.value,
+        started_at=session.started_at,
         question_count=session.question_count,
         lab_count=session.lab_count,
         exam_count=session.exam_count,
@@ -135,13 +136,13 @@ async def chat(
     session_id: str,
     body: ChatRequest,
     session_manager: SessionManager = Depends(get_session_manager),
-    rag_service: RAGService = Depends(get_rag_service),
+    rag_service = Depends(get_rag_service_optional),
     llm_service: LLMService = Depends(get_llm_service),
     case_index: dict = Depends(get_case_index),
 ):
     """
     Send a message to the patient — returns Server-Sent Events stream.
-    Each event is: data: <json>\n\n
+    When RAG is unavailable, uses case presenting_complaint/hpi as minimal context so chat still works.
     """
     try:
         session = session_manager.get_session_or_raise(session_id)
@@ -157,14 +158,30 @@ async def chat(
     # Record trainee message
     session_manager.add_chat_message(session_id, "trainee", body.message)
 
-    # RAG retrieval — use question classifier to target relevant chunk types
-    chunk_types = classify_question(body.message)
-    chunks = rag_service.retrieve(
-        query=body.message,
-        case_id=session.case_id,
-        chunk_types=chunk_types,
-        top_k=4,
-    )
+    # RAG retrieval when available; otherwise minimal context from case so chat still works
+    if rag_service is not None:
+        chunk_types = classify_question(body.message)
+        chunks = rag_service.retrieve(
+            query=body.message,
+            case_id=session.case_id,
+            chunk_types=chunk_types,
+            top_k=4,
+        )
+    else:
+        case_data = case_index.get(session.case_id, {})
+        chunks = []
+        if case_data.get("presenting_complaint"):
+            chunks.append({
+                "chunk_type": "presenting_complaint",
+                "content": f"Chief complaint: {case_data['presenting_complaint']}",
+            })
+        if case_data.get("hpi"):
+            chunks.append({"chunk_type": "hpi", "content": case_data["hpi"]})
+        if not chunks:
+            chunks.append({
+                "chunk_type": "presenting_complaint",
+                "content": "(Limited context — RAG unavailable. Answer briefly or say you're not sure.)",
+            })
 
     # Build prompt
     patient_prompt = build_patient_prompt(

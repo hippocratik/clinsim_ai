@@ -159,6 +159,10 @@ export interface GetSessionResponse {
 export interface OrderLabsResponse {
   orderedLabs: OrderedLab[];
   resourcesUsed: number;
+  failedLabs?: Array<{
+    id: string;
+    reason: string;
+  }>;
 }
 
 export interface ApiClient {
@@ -174,6 +178,7 @@ export interface ApiClient {
     sessionId: string,
     diagnosis: DiagnoseRequest,
   ): Promise<DiagnoseResponse>;
+  getResults(sessionId: string): Promise<DiagnoseResponse>;
 }
 
 

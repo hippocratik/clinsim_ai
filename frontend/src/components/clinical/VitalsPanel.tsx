@@ -5,7 +5,13 @@ interface VitalsPanelProps {
 }
 
 export function VitalsPanel({ caseData }: VitalsPanelProps) {
-  const { vitals } = caseData.physical_exam;
+  const { vitals, findings } = caseData.physical_exam;
+  const allNull =
+    vitals.heart_rate == null &&
+    vitals.blood_pressure == null &&
+    vitals.respiratory_rate == null &&
+    vitals.temperature == null &&
+    vitals.spo2 == null;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm">
@@ -17,6 +23,11 @@ export function VitalsPanel({ caseData }: VitalsPanelProps) {
           Triage
         </span>
       </div>
+      {allNull && !findings ? (
+        <p className="mt-3 text-xs text-slate-500">
+          Vitals not disclosed for this case.
+        </p>
+      ) : (
       <dl className="mt-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
         <div className="space-y-0.5">
           <dt className="text-slate-500">Heart rate</dt>
@@ -51,9 +62,12 @@ export function VitalsPanel({ caseData }: VitalsPanelProps) {
           </dd>
         </div>
       </dl>
-      <p className="mt-3 text-xs text-slate-600">
-        {caseData.physical_exam.findings}
-      </p>
+      )}
+      {findings && (
+        <p className="mt-3 text-xs text-slate-600">
+          {findings}
+        </p>
+      )}
     </section>
   );
 }

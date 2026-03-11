@@ -47,6 +47,11 @@ export function SessionClient({ sessionId }: SessionClientProps) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      {error && (
+        <div className="col-span-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          {error}
+        </div>
+      )}
       <div className="flex flex-col gap-3">
         <PatientChat sessionId={session.session_id} />
         <ActionBar

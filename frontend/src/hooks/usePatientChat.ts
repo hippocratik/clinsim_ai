@@ -81,6 +81,16 @@ export function usePatientChat(options: UsePatientChatOptions) {
       try {
         const result = await api.sendChat(sessionId, content);
         streamPatientResponse(result.response);
+      } catch (err) {
+        appendMessage({
+          id: `system-${crypto.randomUUID()}`,
+          role: "system",
+          content:
+            err instanceof Error
+              ? err.message
+              : "Failed to get patient response",
+          createdAt: new Date().toISOString(),
+        });
       } finally {
         setIsSending(false);
       }

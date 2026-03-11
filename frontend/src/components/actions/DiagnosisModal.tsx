@@ -82,6 +82,12 @@ export function DiagnosisModal({
         </header>
 
         <div className="space-y-4 text-sm">
+          {caseDiagnoses.length === 0 && (
+            <p className="rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Case diagnosis list not available. Search by ICD-9 code or
+              description below, or type a code to select.
+            </p>
+          )}
           <div>
             <label className="block text-xs font-medium text-slate-700">
               Search ICD-9
