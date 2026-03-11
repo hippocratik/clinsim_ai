@@ -45,7 +45,6 @@ async def build_foundation(num_cases: int = 20):
     llm_service = LLMService(
         provider=LLMProvider(settings.llm_provider),
         anthropic_api_key=settings.anthropic_api_key,
-        openai_api_key=settings.openai_api_key,
         model=settings.llm_model or None,
     )
 
