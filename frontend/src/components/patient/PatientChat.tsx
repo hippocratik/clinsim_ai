@@ -45,69 +45,81 @@ export function PatientChat({ sessionId, initialMessages }: PatientChatProps) {
   };
 
   return (
-    <div className="flex max-h-[70vh] flex-col rounded-3xl border border-slate-200 bg-white/60 shadow-sm backdrop-blur">
-      <div className="border-b border-slate-100 px-4 py-3">
-        <h2 className="text-sm font-semibold tracking-tight text-slate-900">
-          Patient Conversation
-        </h2>
-        <p className="mt-1 text-xs text-slate-500">
+    // h-full fills whatever height SessionClient gives us
+    <div className="flex h-full flex-col">
+
+      {/* Header — fixed */}
+      <div className="shrink-0 border-b border-slate-100 px-6 py-3">
+        <h2 className="text-xl font-bold text-slate-900">Patient Conversation</h2>
+        <p className="mt-0.5 text-sm text-slate-500">
           Take a focused history. Your questions shape what you learn.
         </p>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
-      >
+      {/* Messages — scrollable, fills remaining space */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 px-6 py-5">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-3xl">🩺</div>
+            <div>
+              <p className="text-base font-semibold text-slate-700">Begin your consultation</p>
+              <p className="mt-1 text-sm text-slate-400">Ask the patient a question or pick one below.</p>
+            </div>
+          </div>
+        )}
         {messages.map((m) => (
           <MessageBubble key={m.id} message={m} />
         ))}
         {streamingMessageId && (
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-            <span>Patient is responding…</span>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-emerald-400 [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-emerald-400 [animation-delay:150ms]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-emerald-400 [animation-delay:300ms]" />
+            </div>
+            <span className="text-sm text-slate-400">Patient is responding…</span>
           </div>
         )}
       </div>
 
-      <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3">
-        <div className="mb-2 flex flex-wrap gap-1.5">
+      {/* Input — pinned to bottom */}
+      <div className="shrink-0 border-t border-slate-100 bg-slate-50/60 px-6 py-3">
+        <div className="mb-3 flex flex-wrap gap-2">
           {SUGGESTED_QUESTIONS.map((q) => (
             <button
               key={q}
               type="button"
-              className="rounded-full bg-white px-3 py-1 text-[11px] font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-100"
               onClick={() => handleSuggested(q)}
               disabled={isSending}
+              className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40"
             >
               {q}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void handleSend();
-              }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); }
             }}
             placeholder="Type your next question to the patient…"
-            className="flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-blue-200 focus:border-blue-500 focus:ring-2"
+            className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
           <button
             type="button"
             onClick={() => void handleSend()}
             disabled={isSending || !input.trim()}
-            className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {isSending ? "Sending…" : "Send"}
+            {isSending
+              ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /><span>Sending</span></>
+              : "Send ↵"
+            }
           </button>
         </div>
       </div>
     </div>
   );
 }
-
