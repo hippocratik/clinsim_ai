@@ -181,7 +181,8 @@ class SessionManager:
         self,
         session_id: str,
         primary_diagnosis: str,
-        differentials: list[str] = None
+        differentials: list[str] = None,
+        primary_description: str = "",
     ) -> Session:
         """Submit a diagnosis and mark session as completed."""
         session = self.get_session_or_raise(session_id)
@@ -191,9 +192,12 @@ class SessionManager:
         session.submitted_differentials = differentials or []
         session.status = SessionStatus.COMPLETED
         session.completed_at = datetime.utcnow()
+        detail = f"Primary: {primary_diagnosis}"
+        if primary_description and primary_description.strip():
+            detail = f"{detail} · {primary_description.strip()}"
         session.action_log.append(RecordedAction(
             action_type=ActionType.DIAGNOSIS,
-            detail=f"Primary: {primary_diagnosis}"
+            detail=detail,
         ))
         return session
 

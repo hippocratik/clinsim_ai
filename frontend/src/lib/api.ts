@@ -97,6 +97,11 @@ interface ResultsResponse {
   action_log?: Array<{ action_type: string; detail: string }>;
 }
 
+interface DiagnosisSearchResult {
+  code: string;
+  description: string;
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 const defaultVitals = () => ({
@@ -440,6 +445,7 @@ const realApi: ApiClient = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         primary_diagnosis: diagnosis.primaryDiagnosis.icd9_code,
+        primary_description: diagnosis.primaryDiagnosis.description ?? "",
         differentials: diagnosis.differentials.map((d) => d.icd9_code),
       }),
     });
@@ -479,6 +485,24 @@ const realApi: ApiClient = {
     }
     const data: ResultsResponse = await res.json();
     return mapResultsToDiagnoseResponse(data);
+  },
+
+  async searchDiagnoses(query: string): Promise<Diagnosis[]> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    const res = await fetch(
+      `${apiPrefix}/diagnoses/search?q=${encodeURIComponent(trimmed)}`,
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to search diagnoses");
+    }
+    const data: DiagnosisSearchResult[] = await res.json();
+    return data.map((d) => ({
+      icd9_code: d.code,
+      description: d.description,
+      is_primary: false,
+    }));
   },
 };
 

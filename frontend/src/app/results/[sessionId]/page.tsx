@@ -47,7 +47,6 @@ export default async function ResultsPage(props: {
       <ScoreCard score={data.score} />
       <PathComparison
         traineePath={data.traineePath}
-        optimalPath={data.optimalPath}
         learningPoints={data.learningPoints}
       />
     </div>

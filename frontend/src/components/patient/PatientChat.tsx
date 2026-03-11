@@ -16,15 +16,26 @@ const SUGGESTED_QUESTIONS = [
 interface PatientChatProps {
   sessionId: string;
   initialMessages?: ChatMessage[];
+  /** Optional ref so parent can trigger sending a message (e.g. "Ask history" button). */
+  sendMessageRef?: React.MutableRefObject<((text: string) => Promise<void>) | null>;
 }
 
-export function PatientChat({ sessionId, initialMessages }: PatientChatProps) {
+export function PatientChat({ sessionId, initialMessages, sendMessageRef }: PatientChatProps) {
   const [input, setInput] = useState("");
   const { messages, isSending, streamingMessageId, sendMessage } = usePatientChat({
     sessionId,
     initialMessages,
   });
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (sendMessageRef) {
+      sendMessageRef.current = sendMessage;
+      return () => {
+        sendMessageRef.current = null;
+      };
+    }
+  }, [sendMessage, sendMessageRef]);
 
   useEffect(() => {
     if (scrollRef.current) {
